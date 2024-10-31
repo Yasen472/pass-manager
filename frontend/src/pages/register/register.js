@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './register.css';
-import { useAuth } from '../../context/authContext';
+import { useAuth } from '../../context/authContext.js';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -42,14 +42,15 @@ const Register = () => {
       email: email,
       password: password,
     };
-
+    
     try {
       const response = await axios.post(`${process.env.REACT_APP_AUTH_URL}/register`, userData);
+      console.log(response.data);
+      debugger;
 
-      if (response.status === 200) {
-        const userId = response.data.userId; 
+      if (response.status === 200 || response.status === 201) {
         console.log('Registration successful:', response.data);
-        login(userId);
+        login(response.data.userId);
 
         setEmail('');
         setPassword('');
