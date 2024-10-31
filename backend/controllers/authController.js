@@ -2,9 +2,42 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
+// Password validation function
+const validatePassword = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/;
+    const hasLowerCase = /[a-z]/;
+    const hasNumber = /[0-9]/;
+    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/;
+
+    if (password.length < minLength) {
+        return `Password should be at least ${minLength} characters long.`;
+    }
+    if (!hasUpperCase.test(password)) {
+        return "Password should include at least one uppercase letter.";
+    }
+    if (!hasLowerCase.test(password)) {
+        return "Password should include at least one lowercase letter.";
+    }
+    if (!hasNumber.test(password)) {
+        return "Password should include at least one number.";
+    }
+    if (!hasSymbol.test(password)) {
+        return "Password should include at least one symbol.";
+    }
+
+    return true;
+};
+
 const registerUser = (db) => async (req, res) => {
     try {
         const { email, password } = req.body;
+
+        // Validate password strength
+        const passwordValidation = validatePassword(password);
+        if (passwordValidation !== true) {
+            return res.status(400).json({ message: passwordValidation });
+        }
 
         // Check if user already exists
         const usersRef = db.collection("users");
