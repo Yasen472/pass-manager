@@ -1,3 +1,57 @@
+.password-requirements {
+    margin-top: 10px;
+}
+
+.requirement {
+    display: flex;
+    align-items: center;
+    font-size: 0.9em;
+}
+
+.requirement.met {
+    color: green;
+}
+
+.requirement.missed {
+    color: red;
+}
+
+.requirement svg {
+    margin-right: 5px;
+}
+
+.requirements-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 3px;
+    cursor: pointer;
+}
+
+.x-requirements-icon {
+    cursor: pointer;
+}
+
+.dropdown-requirements {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 1rem;
+    background-color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.close-icon {
+    cursor: pointer;
+    color: #ff4d4d;
+}
+
+
 .register-page {
     display: flex;
     justify-content: center;
@@ -15,17 +69,17 @@
 }
 
 .register-image {
-    height: 463px; 
+    height: 463px;
     width: 414px;
     filter: brightness(90%);
-    object-fit: cover; 
-    display: block; 
+    object-fit: cover;
+    display: block;
 }
 
 .register-image-container {
     position: relative;
-    width: 414px; 
-    overflow: hidden; 
+    width: 414px;
+    overflow: hidden;
 }
 
 .register-image-text {
@@ -44,7 +98,8 @@
     margin-bottom: 1.5rem;
 }
 
-.register-password-container, .repassword-container {
+.register-password-container,
+.repassword-container {
     position: relative;
 }
 
