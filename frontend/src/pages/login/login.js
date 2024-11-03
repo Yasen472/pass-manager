@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './login.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/authContext.js';
+import { IoIosEye } from "react-icons/io"; //opened eye
+import { FaEyeSlash } from "react-icons/fa"; //closed eye
+import TextureImg from '../../assets/images/texture.jpg'
 
 const Login = () => {
     const navigate = useNavigate();
@@ -11,6 +14,8 @@ const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const [isVisible, setIsVisible] = useState(false);
+    const [inputType, setInputType] = useState('password');
 
     const handleEmailChange = (e) => {
         setEmail(e.target.value);
@@ -19,6 +24,11 @@ const Login = () => {
     const handlePasswordChange = (e) => {
         setPassword(e.target.value);
     };
+
+    const handleVisibilityChange = () => {
+        setIsVisible(!isVisible);
+        setInputType(prevType => (prevType === 'password' ? 'text' : 'password'));
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -54,29 +64,39 @@ const Login = () => {
     };
 
     return (
-        <div className="login-page">
-            <div className="login-container">
-                <h3 className="login-header">Login</h3>
-                {errorMessage && <p className="error-message">{errorMessage}</p>}
-                <form onSubmit={handleSubmit}>
-                    <label htmlFor="email">Email</label>
-                    <input
-                        type="email"
-                        id="email"
-                        value={email}
-                        onChange={handleEmailChange}
-                    />
-                    <label htmlFor="password">Password</label>
-                    <input
-                        type="password"
-                        id="password"
-                        value={password}
-                        onChange={handlePasswordChange}
-                    />
-                    <button type="submit" className="login-btn">Login</button>
-                </form>
+        <>
+            <div className="login-page">
+                <div className="login-image-container">
+                    <img src={TextureImg} className="login-image" alt="login-image" />
+                    <div className="login-image-text">Welcome Back!</div>
+                </div>
+                <div className="login-container">
+                    <h3 className="login-header">Login</h3>
+                    {errorMessage && <p className="error-message">{errorMessage}</p>}
+                    <form className="login-form" onSubmit={handleSubmit}>
+                        <label htmlFor="email">Email</label>
+                        <input
+                            type="email"
+                            id="email"
+                            value={email}
+                            onChange={handleEmailChange}
+                        />
+                        <label htmlFor="password">Password</label>
+                        <div className="password-container">
+                            <input
+                                type={inputType}
+                                id="password"
+                                value={password}
+                                onChange={handlePasswordChange}
+                            />
+                            {!isVisible ? <IoIosEye className="visibility-icon" size={25} onClick={handleVisibilityChange} /> : <FaEyeSlash className="visibility-icon" size={25} onClick={handleVisibilityChange} />}
+                        </div>
+                        <button type="submit" className="login-btn">Login</button>
+                    </form>
+                    <p className="sign-up-message">New User? <Link to="/register">Sign-up</Link></p>
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 

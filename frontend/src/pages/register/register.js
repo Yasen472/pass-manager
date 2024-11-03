@@ -3,6 +3,9 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './register.css';
 import { useAuth } from '../../context/authContext.js';
+import TextureImg from '../../assets/images/texture.jpg'
+import { IoIosEye } from "react-icons/io"; //opened eye
+import { FaEyeSlash } from "react-icons/fa"; //closed eye
 
 const Register = () => {
   const navigate = useNavigate();
@@ -12,6 +15,10 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [rePassword, setRePassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isPassVisible, setIsPassVisible] = useState(false);
+  const [isRePassVisible, setIsRePassVisible] = useState(false);
+  const [inputType, setInputType] = useState('password');
+  const [repassInputType, setRepassInputType] = useState('password');
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
@@ -51,6 +58,16 @@ const Register = () => {
     return true;
   };
 
+  const handleVisibilityChange = () => {
+    setIsPassVisible(!isPassVisible);
+    setInputType(prevType => (prevType === 'password' ? 'text' : 'password'));
+  }
+
+  const handleRepassVisibilityChange = () => {
+    setIsRePassVisible(!isRePassVisible);
+    setRepassInputType(prevType => (prevType === 'password' ? 'text' : 'password'));
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -81,7 +98,7 @@ const Register = () => {
 
     try {
       const response = await axios.post(`${process.env.REACT_APP_AUTH_URL}/register`, userData);
-      
+
       if (response.status === 200 || response.status === 201) {
         console.log('Registration successful:', response.data);
         login(response.data.userId);
@@ -101,19 +118,26 @@ const Register = () => {
 
   return (
     <div className="register-page">
+      <div className="register-image-container">
+        <img src={TextureImg} className="register-image" alt="login-image" />
+        <div className="register-image-text">Welcome Back!</div>
+      </div>
       <div className='register-container'>
         <h3 className='register-header'>Register</h3>
         {errorMessage && <p className='error-message'>{errorMessage}</p>}
         <form onSubmit={handleSubmit}>
           <label htmlFor='email'>Email</label>
           <input type='email' id='email' value={email} onChange={handleEmailChange} />
-
-          <label htmlFor='password'>Password</label>
-          <input type='password' id='password' value={password} onChange={handlePasswordChange} />
-
+            <label htmlFor='password'>Password</label>
+          <div className="register-password-container">
+            <input type={inputType} id='password' value={password} onChange={handlePasswordChange} />
+            {!isPassVisible ? <IoIosEye className="pass-visibility-icon" size={25} onClick={handleVisibilityChange} /> : <FaEyeSlash className="visibility-icon" size={25} onClick={handleVisibilityChange} />}
+          </div>
           <label htmlFor='rePassword'>Re-enter Password</label>
-          <input type='password' id='rePassword' value={rePassword} onChange={handleRePasswordChange} />
-
+          <div className="repassword-container">
+            <input type={repassInputType} id='rePassword' value={rePassword} onChange={handleRePasswordChange} />
+            {!isRePassVisible ? <IoIosEye className="repass-visibility-icon" size={25} onClick={handleRepassVisibilityChange} /> : <FaEyeSlash className="visibility-icon" size={25} onClick={handleRepassVisibilityChange} />}
+          </div>
           <button type='submit' className='register-btn'>Register</button>
         </form>
       </div>

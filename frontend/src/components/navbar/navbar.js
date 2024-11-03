@@ -2,17 +2,18 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./navbar.css";
 import { useAuth } from "../../context/authContext.js";
-import { FaBars } from 'react-icons/fa'; 
+import { FaBars } from 'react-icons/fa';
+import { RiLockPasswordFill } from "react-icons/ri";
 
 const Navbar = () => {
     const { isLoggedIn, logout } = useAuth();
     const navigate = useNavigate();
-    const [menuOpen, setMenuOpen] = useState(false); 
+    const [menuOpen, setMenuOpen] = useState(false);
 
     const handleLogout = () => {
         logout();
         navigate("/");
-        setMenuOpen(false); 
+        setMenuOpen(false);
     };
 
     const toggleMenu = () => {
@@ -26,12 +27,16 @@ const Navbar = () => {
     return (
         <div className="navbar-container">
             <Link to="/" className="nav-link-header" onClick={handleLinkClick}>
-                Password Manager
+            <RiLockPasswordFill className="nav-icon" />
+                <span className="nav-text">SafePass</span>
             </Link>
 
             <div className={`links ${menuOpen ? 'active' : ''}`}>
                 {isLoggedIn ? (
                     <>
+                    <   Link to="/accounts" onClick={handleLinkClick} className="nav-link">
+                            Acounts
+                        </Link>
                         <Link to="/profile" className="nav-link" onClick={handleLinkClick}>
                             Profile
                         </Link>
