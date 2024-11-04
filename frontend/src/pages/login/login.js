@@ -7,9 +7,10 @@ import { IoIosEye } from "react-icons/io"; //opened eye
 import { FaEyeSlash } from "react-icons/fa"; //closed eye
 import TextureImg from '../../assets/images/texture.jpg'
 
+
 const Login = () => {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, username } = useAuth();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -46,7 +47,7 @@ const Login = () => {
             if (response.status === 200) {
                 const userId = response.data._id;
                 console.log('Login successful:', response.data);
-                login(userId);
+                login(userId, username);
 
                 setEmail('');
                 setPassword('');

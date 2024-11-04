@@ -12,6 +12,7 @@ const Register = () => {
   const { login } = useAuth();
 
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rePassword, setRePassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -29,6 +30,10 @@ const Register = () => {
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
   };
+
+  const handleUsernameChange = (e) => {
+    setUsername(e.target.value);
+  }
 
   const handlePasswordChange = (e) => {
     const newPassword = e.target.value;
@@ -86,7 +91,7 @@ const Register = () => {
     e.preventDefault();
 
     // Check for empty fields
-    if (!email || !password || !rePassword) {
+    if (!username || !email || !password || !rePassword) {
       setErrorMessage('Please fill in all fields.');
       return;
     }
@@ -107,6 +112,7 @@ const Register = () => {
     const userData = {
       email: email,
       password: password,
+      username: username
     };
 
     try {
@@ -114,9 +120,11 @@ const Register = () => {
 
       if (response.status === 200 || response.status === 201) {
         console.log('Registration successful:', response.data);
-        login(response.data.userId);
+        console.log(username)
+        login(response.data.userId, username);
 
         // Reset fields and error message
+        setUsername('');
         setEmail('');
         setPassword('');
         setRePassword('');
@@ -139,6 +147,9 @@ const Register = () => {
         <h3 className='register-header'>Register</h3>
         {errorMessage && <p className='error-message'>{errorMessage}</p>}
         <form onSubmit={handleSubmit}>
+          <label htmlFor='username'>Username</label>
+          <input type='text' id='username' value={username} onChange={handleUsernameChange} />
+
           <label htmlFor='email'>Email</label>
           <input type='email' id='email' value={email} onChange={handleEmailChange} />
 
@@ -154,8 +165,8 @@ const Register = () => {
             </div>
 
             {showReq ? (
-              <div 
-                className="requirements-container" 
+              <div
+                className="requirements-container"
                 onMouseEnter={() => setShowReqMenu(true)}
                 onMouseLeave={() => setShowReqMenu(false)}
               >

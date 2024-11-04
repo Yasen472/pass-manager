@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { registerUser, loginUser, deleteUser } = require("../controllers/authController");
+const { registerUser, loginUser, deleteUser, updateUser } = require("../controllers/authController");
 
 // Initialize Firebase in this file
 const admin = require("firebase-admin");
@@ -15,6 +15,6 @@ const db = admin.firestore(); // Directly initialize db
 router.post('/register', registerUser(db));
 router.post('/login', loginUser(db));
 router.delete('/delete/:id', deleteUser(db));
-//add update user
+router.put('/update/:id', updateUser(db));
 
 module.exports = router;
