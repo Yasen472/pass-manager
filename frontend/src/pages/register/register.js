@@ -5,8 +5,7 @@ import './register.css';
 import { useAuth } from '../../context/authContext.js';
 import TextureImg from '../../assets/images/texture.jpg';
 import { IoIosEye } from "react-icons/io";
-import { FaEyeSlash, FaCheckCircle, FaTimesCircle, FaTimes, FaTasks } from "react-icons/fa"; // Add icons for check and X
-// FaTasks - requirements icon
+import { FaEyeSlash, FaCheckCircle, FaTimesCircle } from "react-icons/fa"; // Icons for check and X
 
 const Register = () => {
   const navigate = useNavigate();
@@ -23,7 +22,7 @@ const Register = () => {
   const [metRequirements, setMetRequirements] = useState([]);
   const [missedRequirements, setMissedRequirements] = useState([]);
   const [readyPassword, setReadyPassword] = useState(false);
-  const [showReq, setShowReq] = useState(false); // State for showing requirements
+  const [showReq, setShowReq] = useState(false); // Show requirements label
   const [showButton, setShowButton] = useState(false);
   const [showReqMenu, setShowReqMenu] = useState(false);
 
@@ -130,17 +129,11 @@ const Register = () => {
     }
   };
 
-  useEffect(() => {
-
-    console.log(`ShowReq is ${showReqMenu}`)
-
-  }, [showReqMenu])
-
   return (
     <div className="register-page">
       <div className="register-image-container">
         <img src={TextureImg} className="register-image" alt="login-image" />
-        <div className="register-image-text">Welcome Back!</div>
+        <div className="register-image-text">Sign Up Today</div>
       </div>
       <div className='register-container'>
         <h3 className='register-header'>Register</h3>
@@ -149,53 +142,56 @@ const Register = () => {
           <label htmlFor='email'>Email</label>
           <input type='email' id='email' value={email} onChange={handleEmailChange} />
 
-          <label htmlFor='password'>Password</label>
-          <div className="register-password-container">
-            <input type={inputType} id='password' value={password} onChange={handlePasswordChange} />
-            {!isPassVisible ? (
-              <IoIosEye className="pass-visibility-icon" size={25} onClick={handleVisibilityChange} />
-            ) : (
-              <FaEyeSlash className="visibility-icon" size={25} onClick={handleVisibilityChange} />
-            )}
-          </div>
-          {showReq ? (
-            <div className="requirements-container" onClick={(e) =>{
-              e.preventDefault()
-              setShowReqMenu(true) 
-            } }>
-              {readyPassword ? (
-                <>
-                  <div>Meets requirements </div><FaCheckCircle color="green" />
-                </>
+          <div className="password-container">
+            <label htmlFor='password'>Password</label>
+            <div className="register-password-container">
+              <input type={inputType} id='password' value={password} onChange={handlePasswordChange} />
+              {!isPassVisible ? (
+                <IoIosEye className="pass-visibility-icon" size={25} onClick={handleVisibilityChange} />
               ) : (
-                <>
-                  <div>Meets requirements</div><FaTimesCircle className="x-requirements-icon" color="red"/>
-                </>
+                <FaEyeSlash className="visibility-icon" size={25} onClick={handleVisibilityChange} />
               )}
             </div>
-          ) : null}
 
+            {showReq ? (
+              <div 
+                className="requirements-container" 
+                onMouseEnter={() => setShowReqMenu(true)}
+                onMouseLeave={() => setShowReqMenu(false)}
+              >
+                {readyPassword ? (
+                  <>
+                    <div>Meets requirements </div><FaCheckCircle color="green" />
+                  </>
+                ) : (
+                  <>
+                    <div>Meets requirements</div><FaTimesCircle className="x-requirements-icon" color="red" />
+                  </>
+                )}
+              </div>
+            ) : null}
 
-          {showReqMenu ? (
-            <div className="dropdown-requirements">
-              <div className="dropdown-header">
-                <h4>Password Requirements</h4>
-                <FaTimes className="close-icon" onClick={() => setShowReqMenu(false)} />
+            {/* Display the requirements menu on hover */}
+            {showReqMenu && (
+              <div className="dropdown-requirements">
+                <div className="dropdown-header">
+                  <h4>Password Requirements</h4>
+                </div>
+                <div className="password-requirements">
+                  {metRequirements.map((req, idx) => (
+                    <div key={idx} className="requirement met">
+                      <FaCheckCircle color="green" /> {req}
+                    </div>
+                  ))}
+                  {missedRequirements.map((req, idx) => (
+                    <div key={idx} className="requirement missed">
+                      <FaTimesCircle color="red" /> {req}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="password-requirements">
-                {metRequirements.map((req, idx) => (
-                  <div key={idx} className="requirement met">
-                    <FaCheckCircle color="green" /> {req}
-                  </div>
-                ))}
-                {missedRequirements.map((req, idx) => (
-                  <div key={idx} className="requirement missed">
-                    <FaTimesCircle color="red" /> {req}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
+            )}
+          </div>
 
           <label htmlFor='rePassword'>Re-enter Password</label>
           <div className="repassword-container">
@@ -214,3 +210,4 @@ const Register = () => {
 };
 
 export default Register;
+

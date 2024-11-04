@@ -1,5 +1,8 @@
 .password-requirements {
     margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .requirement {
@@ -23,7 +26,7 @@
 .requirements-container {
     display: flex;
     justify-content: flex-end;
-    gap: 3px;
+    gap: 5px;
     cursor: pointer;
 }
 
@@ -33,11 +36,26 @@
 
 .dropdown-requirements {
     border: 1px solid #ccc;
-    border-radius: 6px;
+    border-radius: 4px;
     padding: 1rem;
-    margin-top: 1rem;
     background-color: white;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    position: absolute;
+    z-index: 1;
+    top: 100%; /* Shows the dropdown directly below the requirements container */
+    left: 40%;
+    transform: translateY(10px); /* Slight offset for visual spacing */
+    width: max-content;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.requirements-container:hover + .dropdown-requirements,
+.dropdown-requirements:hover {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
 }
 
 .dropdown-header {
@@ -51,13 +69,13 @@
     color: #ff4d4d;
 }
 
-
 .register-page {
     display: flex;
     justify-content: center;
     align-items: center;
     height: calc(100vh - 60px);
     font-family: 'Arial', sans-serif;
+    flex: 1;
 }
 
 .register-container {
@@ -74,6 +92,7 @@
     filter: brightness(90%);
     object-fit: cover;
     display: block;
+    filter: hue-rotate(30deg)
 }
 
 .register-image-container {
@@ -117,7 +136,6 @@
     cursor: pointer;
 }
 
-
 form label {
     font-size: 1rem;
     font-weight: 500;
@@ -148,6 +166,9 @@ input:focus {
     color: #ff4d4d;
     font-size: 0.9rem;
     margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: #ffe6e6;
+    border-radius: 4px;
 }
 
 .register-btn {
@@ -167,6 +188,14 @@ input:focus {
     background-color: #005bbb;
 }
 
+.register-btn:focus,
+.pass-visibility-icon:focus,
+.repass-visibility-icon:focus,
+.close-icon:focus {
+    outline: 2px solid #0077ff;
+    outline-offset: 2px;
+}
+
 @media (max-width: 768px) {
     .register-container {
         padding: 1.5rem;
@@ -175,5 +204,26 @@ input:focus {
 
     .register-header {
         font-size: 1.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .register-header {
+        font-size: 1.5rem;
+    }
+    .register-container {
+        padding: 1rem;
+        width: 100%;
+        box-shadow: none;
+    }
+    .dropdown-requirements {
+        width: 90%;
+    }
+    input {
+        font-size: 0.9rem;
+    }
+    .register-btn {
+        padding: 0.6rem;
+        font-size: 0.9rem;
     }
 }
