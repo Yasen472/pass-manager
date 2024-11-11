@@ -33,25 +33,27 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+    
         setErrorMessage('');
-
+    
         if (!email || !password) {
             setErrorMessage('Please fill in all fields.');
             return;
         }
-
+    
         try {
             const response = await axios.post(`${process.env.REACT_APP_AUTH_URL}/login`, { email, password });
-
+    
             if (response.status === 200) {
                 const userId = response.data._id;
+                const user = response.data.username;  // Assume server sends back username
                 console.log('Login successful:', response.data);
-                login(userId, username);
-
+                
+                login(userId, user, email, password);  // Pass the retrieved username
+    
                 setEmail('');
                 setPassword('');
-
+    
                 navigate('/');
             }
         } catch (error) {
@@ -63,6 +65,7 @@ const Login = () => {
             }
         }
     };
+    
 
     return (
         <>

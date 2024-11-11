@@ -1,4 +1,64 @@
 .profile-page {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background-color: lightblue;
+}
+
+.profile-details > h2 {
+  margin-bottom: 20px;
+}
+
+.profile-picture-container {
+  height: 250px;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  /* background-color: #4079ff; */
+  filter: brightness(80%);
+}
+
+.profile-picture {
+  width: 150px;
+  height: 150px;
+  margin-bottom: 20px;
+  border-radius: 50%;
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.input-icon-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+
+.edit-icon {
+  position: absolute;
+  top: 25%;
+  right: 90%;
+  cursor: pointer;
+  color: #4079ff;
+}
+
+.edit-icon:hover {
+  color: #0056b3; /* Darker color on hover */
+}
+
+label {
+  font-weight: bold;
 }

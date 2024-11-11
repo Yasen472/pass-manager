@@ -7,6 +7,7 @@ import Home from './pages/home/home.js';
 import Navbar from './components/navbar/navbar.js';
 import Accounts from './pages/accounts/accounts.js';
 import Profile from './pages/profile/profile.js';
+import VerifyEmailPage from './pages/verifyEmail/verifyEmail.js';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/accounts" element={<Accounts />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
       </Routes>
     </AuthProvider>
   );

@@ -41,6 +41,7 @@
   text-decoration: none;
   transition: color 0.3s;
   margin: 0 15px;
+  cursor: pointer;
 }
 
 .links > a:hover {

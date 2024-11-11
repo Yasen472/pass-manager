@@ -87,55 +87,44 @@ const Register = () => {
     setRepassInputType(prevType => (prevType === 'password' ? 'text' : 'password'));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+// Inside handleSubmit
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    // Check for empty fields
-    if (!username || !email || !password || !rePassword) {
+  if (!username || !email || !password || !rePassword) {
       setErrorMessage('Please fill in all fields.');
       return;
-    }
+  }
 
-    // Check if passwords match
-    if (password !== rePassword) {
+  if (password !== rePassword) {
       setErrorMessage('Passwords do not match.');
       return;
-    }
+  }
 
-    // Validate password strength
-    if (missedRequirements.length > 0) {
+  if (missedRequirements.length > 0) {
       setErrorMessage('Please ensure all password requirements are met.');
       return;
-    }
+  }
 
-    // Prepare user data for submission
-    const userData = {
+  const userData = {
       email: email,
       password: password,
       username: username
-    };
+  };
 
-    try {
+  try {
       const response = await axios.post(`${process.env.REACT_APP_AUTH_URL}/register`, userData);
 
-      if (response.status === 200 || response.status === 201) {
-        console.log('Registration successful:', response.data);
-        console.log(username)
-        login(response.data.userId, username);
-
-        // Reset fields and error message
-        setUsername('');
-        setEmail('');
-        setPassword('');
-        setRePassword('');
-        setErrorMessage('');
-        navigate('/');
+      if (response.status === 201) { // Only need 201 here
+          console.log('Registration successful:', response.data);
+          navigate('/verify-email')
       }
-    } catch (error) {
+  } catch (error) {
       console.error('Error during registration:', error);
       setErrorMessage('Registration failed. Please try again.');
-    }
-  };
+  }
+};
+
 
   return (
     <div className="register-page">
