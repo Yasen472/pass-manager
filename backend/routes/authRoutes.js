@@ -6,7 +6,7 @@ const credentials = require("../key.json");
 // Initialize Firebase
 admin.initializeApp({
     credential: admin.credential.cert(credentials)
-});
+});;
 
 const db = admin.firestore();
 const auth = admin.auth();
