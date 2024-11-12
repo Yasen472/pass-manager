@@ -1,8 +1,8 @@
-const jwt = require("jsonwebtoken")
-const bcrypt = require("bcryptjs")
-const dotenv = require("dotenv")
-const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const dotenv = require("dotenv");
+const speakeasy = require("speakeasy");  // For generating and verifying 2FA codes
+const QRCode = require('qrcode');
 
 dotenv.config();
 
@@ -13,7 +13,6 @@ const validatePassword = (password) => {
     const hasLowerCase = /[a-z]/;
     const hasNumber = /[0-9]/;
     const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/;
-
 
     if (password.length < minLength) {
         return `Password should be at least ${minLength} characters long.`;
@@ -34,82 +33,91 @@ const validatePassword = (password) => {
     return true;
 };
 
-// Configure Nodemailer transporter
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.GMAIL_USER,  // Your email address
-        pass: process.env.GMAIL_PASS   // Your email password or app-specific password
-    }
-});
-
-// Function to generate a random token for email verification
-const generateVerificationToken = () => {
-    return crypto.randomBytes(32).toString('hex');
-};
-
-// Main registration function
+// 2FA Setup: Generate a secret for Google Authenticator
+// 2FA Setup: Generate a secret for Google Authenticator
 const registerUser = (db) => async (req, res) => {
     try {
         const { email, password, username } = req.body;
 
-        // Validate password strength
+        // Step 1: Validate password strength
         const passwordValidation = validatePassword(password);
         if (passwordValidation !== true) {
+            console.log("Password validation failed:", passwordValidation);
             return res.status(400).json({ message: passwordValidation });
         }
 
-        // Check if user already exists by email or username
+        // Step 2: Check if user already exists by email or username
         const usersRef = db.collection("users");
-        const existingUserQuery = usersRef.where("email", "==", email);
-        const existingUsernameQuery = usersRef.where("username", "==", username);
-
-        const [existingUserSnapshot, existingUsernameSnapshot] = await Promise.all([ 
-            existingUserQuery.get(),
-            existingUsernameQuery.get()
+        const [existingUserSnapshot, existingUsernameSnapshot] = await Promise.all([
+            usersRef.where("email", "==", email).get(),
+            usersRef.where("username", "==", username).get(),
         ]);
 
         if (!existingUserSnapshot.empty) {
+            console.log("User with this email already exists:", email);
             return res.status(409).json({ message: "User with this email already exists" });
         }
 
         if (!existingUsernameSnapshot.empty) {
+            console.log("Username already taken:", username);
             return res.status(409).json({ message: "Username already taken" });
         }
 
-        // Hash the password with bcrypt
+        // Step 3: Hash the password with bcrypt
         const hashedPassword = await bcrypt.hash(password, 10);  // 10 salt rounds
 
-        // Generate verification token
-        const verificationToken = generateVerificationToken();
-
-        // Save user with hashed password, username, and verification token
-        await db.collection("users").add({ 
-            email, 
-            username, 
-            password: hashedPassword, 
-            verificationToken,
-            isVerified: false // Initially, the user is not verified
+        // Step 4: Generate a 2FA secret for the user
+        const twofaSecret = speakeasy.generateSecret({
+            length: 20,
+            name: `MyApp (${email})`,  // Set a name for the QR code label
         });
 
-        // Create verification link (use localhost:3000 for local testing)
-        const verificationLink = `http://localhost:8080/auth/verify-email?token=${verificationToken}`;
+        console.log("Generated 2FA Secret:", twofaSecret.base32);  // Debug line
 
-        // Set up email options
-        const mailOptions = {
-            from: process.env.GMAIL_USER,
-            to: email,
-            subject: 'Please verify your email address',
-            html: `<p>Hi ${username},</p>
-                   <p>Thank you for registering. Please verify your email by clicking the link below:</p>
-                   <p><a href="${verificationLink}">${verificationLink}</a></p>`
+        // Step 5: Generate the QR code URL
+        const otpauthUrl = twofaSecret.otpauth_url;
+        if (!otpauthUrl) {
+            console.error("Failed to generate otpauth_url for 2FA secret");
+            return res.status(500).json({ message: "Failed to generate QR code for 2FA" });
+        }
+
+        // Generate QR code data URL
+        let qrCodeDataURL;
+        try {
+            qrCodeDataURL = await QRCode.toDataURL(otpauthUrl);
+            console.log("Generated QR Code URL:", qrCodeDataURL);  // Debug line
+        } catch (error) {
+            console.error("Error generating QR code:", error);
+            return res.status(500).json({ message: "Error generating QR code." });
+        }
+
+        // Step 6: Save user with hashed password and 2FA secret
+        const user = await db.collection("users").add({
+            email,
+            username,
+            password: hashedPassword,
+            isVerified: false,  // Initially, the user is not verified
+            twofaSecret: twofaSecret.base32,  // Save the base32 encoded secret
+        });
+
+        console.log("User registered successfully:", user.id);
+
+        // Step 7: Generate JWT token after registration (before 2FA verification)
+        const payload = {
+            userId: user.id,  // Use the Firestore generated user ID
+            email,
+            username
         };
 
-        // Send verification email
-        await transporter.sendMail(mailOptions);
+        const authToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });  // You can adjust the expiration time as needed
 
-        // Respond with success
-        res.status(201).json({ message: "User registered successfully, please check your email for verification" });
+        // Step 8: Send response including JWT token and QR code URL
+        res.status(201).json({
+            message: "User registered successfully",
+            qrCodeUrl: qrCodeDataURL,
+            userId: user.id,  // Optional, for frontend reference
+            token: authToken  // Send the JWT token to the client
+        });
     } catch (error) {
         console.error("Error during registration:", error);
         res.status(500).json({ message: "An error occurred during registration" });
@@ -117,29 +125,117 @@ const registerUser = (db) => async (req, res) => {
 };
 
 
+
+
+const setupTwoFA = (db) => async (req, res) => {
+    try {
+        // Ensure the user is authenticated and the ID comes from the authenticated user
+        const userId = req.user.id;  // Assuming you're using JWT to authenticate the user
+        
+        // Get user document from Firestore
+        const userDoc = await db.collection("users").doc("userId").get();
+        if (!userDoc.exists) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const user = userDoc.data();
+
+        // Check if 2FA is already set up
+        if (user.twofaSecret) {
+            return res.status(400).json({ message: "2FA is already set up for this user" });
+        }
+
+        // Generate a new 2FA secret using speakeasy
+        const secret = speakeasy.generateSecret({ length: 20 });
+
+        // Update user with the 2FA secret in the Firestore
+        await db.collection("users").doc(userId).update({
+            twofaSecret: secret.base32,  // Save the base32 secret
+        });
+
+        // Generate the OTP Auth URL for Google Authenticator
+        const otpauthUrl = speakeasy.otpauthURL({
+            secret: secret.base32,
+            label: `MyApp:${user.username}`,  // Customize with your app's name and the user's username
+            issuer: "MyApp"  // Customize with your app's name
+        });
+
+        // Generate the QR code URL using the OTP Auth URL
+        const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);  // Make sure QRCode is imported
+
+        res.status(200).json({
+            message: "2FA setup successful",
+            qrCodeUrl,  // Send the generated QR code as a response
+            secret: secret.base32  // You may or may not want to include this in the response, for later use
+        });
+    } catch (error) {
+        console.error("Error during 2FA setup:", error);
+        res.status(500).json({ message: "An error occurred during 2FA setup" });
+    }
+};
+
+// 2FA Verification: Verify the token entered by the user
+const verify2FA = (db) => async (req, res) => {
+    try {
+        const { userId, token } = req.body;
+
+        // Step 1: Retrieve the user's 2FA secret from the database
+        const userDoc = await db.collection("users").doc(userId).get();
+        if (!userDoc.exists) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const user = userDoc.data();
+        const twofaSecret = user.twofaSecret;
+
+        // Step 2: Verify the token using speakeasy
+        const isVerified = speakeasy.totp.verify({
+            secret: twofaSecret,
+            encoding: 'base32',
+            token: token,
+        });
+
+        if (!isVerified) {
+            return res.status(400).json({ message: "Invalid 2FA token" });
+        }
+
+        // Step 3: Update the user's isVerified status to true
+        await db.collection("users").doc(userId).update({
+            isVerified: true,
+        });
+
+        res.status(200).json({
+            message: "2FA verification successful. User is now verified.",
+        });
+    } catch (error) {
+        console.error("Error during 2FA verification:", error);
+        res.status(500).json({ message: "An error occurred during 2FA verification" });
+    }
+};
+
+
+// Login user (with 2FA check)
 const loginUser = (db) => async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, token: twoFAToken } = req.body; // Rename token to twoFAToken
 
         // Find user by email
         const usersRef = db.collection("users");
         const userQuery = usersRef.where("email", "==", email);
         const userSnapshot = await userQuery.get();
 
-        // Check if user exists
         if (userSnapshot.empty) {
             return res.status(401).json({ message: "Invalid email or password" });
         }
 
-        // Retrieve user data
         let user;
         userSnapshot.forEach((doc) => {
             user = { _id: doc.id, ...doc.data() };
         });
 
-        // Check if the user is verified
+        // Check if the user is verified (2FA setup)
         if (!user.isVerified) {
-            return res.status(403).json({ message: "Please verify your email before logging in." });
+            return res.status(403).json({ message: "User is not verified. Please complete the 2FA verification." });
         }
 
         // Compare provided password with stored hashed password
@@ -148,40 +244,27 @@ const loginUser = (db) => async (req, res) => {
             return res.status(401).json({ message: "Invalid email or password" });
         }
 
-        // Check last login verification status
-        if (!user.lastLoginVerified) {
-            // Generate a login verification token
-            const loginToken = generateVerificationToken();
-            await db.collection("users").doc(user._id).update({
-                loginToken,
-                lastLoginVerified: false,
+        // Verify 2FA token if set
+        if (user.twofaSecret) {
+            const isVerified = speakeasy.totp.verify({
+                secret: user.twofaSecret,
+                encoding: 'base32',
+                token: twoFAToken  // Use the renamed variable for 2FA token
             });
 
-            // Send a new login verification email
-            const loginVerificationLink = `http://localhost:8080/auth/confirm-login?token=${loginToken}`;
-            const mailOptions = {
-                from: process.env.GMAIL_USER,
-                to: email,
-                subject: 'Confirm your login',
-                html: `<p>Please confirm your login by clicking the link below:</p>
-                       <p><a href="${loginVerificationLink}">${loginVerificationLink}</a></p>`,
-            };
-            await transporter.sendMail(mailOptions);
-
-            return res.status(403).json({ message: "Please confirm your login by clicking the link sent to your email." });
+            if (!isVerified) {
+                return res.status(400).json({ message: "Invalid 2FA token" });
+            }
         }
 
-        // Mark lastLoginVerified as false for future logins
-        await db.collection("users").doc(user._id).update({ lastLoginVerified: false });
-
-        // Generate JWT with user ID, email, and username
-        const token = jwt.sign(
+        // Generate JWT with user ID, email, and username (renamed the variable to authToken)
+        const authToken = jwt.sign(
             { id: user._id, email: user.email, username: user.username },
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
 
-        res.status(200).json({ message: "Login successful", token, username: user.username });
+        res.status(200).json({ message: "Login successful", token: authToken, username: user.username });
     } catch (error) {
         console.error("Error during login:", error);
         res.status(500).json({ message: "An error occurred during login" });
@@ -189,71 +272,22 @@ const loginUser = (db) => async (req, res) => {
 };
 
 
-const confirmLogin = (db) => async (req, res) => {
-    try {
-        const { token } = req.query;
-
-        if (!token) {
-            return res.status(400).json({ message: "Confirmation token is required" });
-        }
-
-        // Search for the user using the login token
-        const usersRef = db.collection("users");
-        const userQuery = usersRef.where("loginToken", "==", token);
-        const userSnapshot = await userQuery.get();
-
-        if (userSnapshot.empty) {
-            return res.status(400).json({ message: "Invalid or expired login token" });
-        }
-
-        // Retrieve and update the user's login verification status
-        let user;
-        userSnapshot.forEach((doc) => {
-            user = { _id: doc.id, ...doc.data() };
-        });
-
-        await db.collection("users").doc(user._id).update({
-            lastLoginVerified: true,
-            loginToken: "",  // Clear the login token after successful confirmation
-        });
-
-        res.status(200).json({ message: "Login confirmed successfully! You may now proceed to login." });
-    } catch (error) {
-        console.error("Error during login confirmation:", error);
-        res.status(500).json({ message: "An error occurred during login confirmation" });
-    }
-};
-
 
 // Update user
-const updateUser = (db, auth) => async (req, res) => {
+const updateUser = (db) => async (req, res) => {
     try {
         const { email, password, username } = req.body;
         const userId = req.params.id;
 
-        // Get user document from Firestore
         const userDoc = await db.collection("users").doc(userId).get();
         if (!userDoc.exists) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Prepare updates for Auth
-        const authUpdates = {};
-        if (email) authUpdates.email = email;
-        if (password) authUpdates.password = password;
-        if (username) authUpdates.displayName = username;
-
-        // Update Auth user if there are auth updates
-        if (Object.keys(authUpdates).length > 0) {
-            await auth.updateUser(userId, authUpdates);
-        }
-
-        // Prepare updates for Firestore
         const firestoreUpdates = {};
         if (email) firestoreUpdates.email = email;
         if (username) firestoreUpdates.username = username;
 
-        // Update Firestore if there are updates
         if (Object.keys(firestoreUpdates).length > 0) {
             await db.collection("users").doc(userId).update(firestoreUpdates);
         }
@@ -266,126 +300,24 @@ const updateUser = (db, auth) => async (req, res) => {
 };
 
 // Delete user
-const deleteUser = (db, auth) => async (req, res) => {
+const deleteUser = (db) => async (req, res) => {
     try {
         const userId = req.params.id;
 
-        // Delete from Auth
-        await auth.deleteUser(userId);
-
-        // Delete from Firestore
         await db.collection("users").doc(userId).delete();
 
         res.status(200).json({ message: "User deleted successfully" });
     } catch (error) {
-        console.error("Error during deletion:", error);
-        res.status(500).json({ message: "An error occurred while deleting the user" });
+        console.error("Error during user deletion:", error);
+        res.status(500).json({ message: "An error occurred during the user deletion" });
     }
 };
-
-const verifyEmail = (db) => async (req, res) => {
-    try {
-        // Extract the token from the query parameters
-        const { token } = req.query;
-
-        if (!token) {
-            return res.status(400).json({ message: "Verification token is required" });
-        }
-
-        // Search for the user using the verification token in the database
-        const usersRef = db.collection("users");
-        const userQuery = usersRef.where("verificationToken", "==", token);
-        const userSnapshot = await userQuery.get();
-
-        if (userSnapshot.empty) {
-            return res.status(400).json({ message: "Invalid or expired verification token" });
-        }
-
-        // If a matching user is found, mark the email as verified
-        let user;
-        userSnapshot.forEach((doc) => {
-            user = { _id: doc.id, ...doc.data() };
-        });
-
-        // Update the user's "isVerified" status to true in the database
-        await db.collection("users").doc(user._id).update({
-            isVerified: true,
-            verificationToken: "", // Optionally, clear the verification token after use
-        });
-
-        // Send a response to inform the user that the email has been successfully verified
-        res.status(200).json({ message: "Email successfully verified!" });
-    } catch (error) {
-        console.error("Error during email verification:", error);
-        res.status(500).json({ message: "An error occurred during email verification" });
-    }
-};
-
-// Resend verification email
-const resendVerificationEmail = (db) => async (req, res) => {
-    try {
-        const { email } = req.body;
-
-        // Find the user by email
-        const usersRef = db.collection("users");
-        const userQuery = usersRef.where("email", "==", email);
-        const userSnapshot = await userQuery.get();
-
-        if (userSnapshot.empty) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // Retrieve user data
-        let user;
-        userSnapshot.forEach((doc) => {
-            user = { _id: doc.id, ...doc.data() };
-        });
-
-        // If the user is already verified, return an appropriate message
-        if (user.isVerified) {
-            return res.status(400).json({ message: "This email is already verified." });
-        }
-
-        // Generate a new verification token
-        const verificationToken = generateVerificationToken();
-
-        // Update the user with the new token
-        await db.collection("users").doc(user._id).update({
-            verificationToken,
-        });
-
-        // Create verification link
-        const verificationLink = `http://localhost:8080/auth/verify-email?token=${verificationToken}`;
-
-        // Set up email options
-        const mailOptions = {
-            from: process.env.GMAIL_USER,
-            to: email,
-            subject: 'Please verify your email address',
-            html: `<p>Hi ${user.username},</p>
-                   <p>Thank you for registering. Please verify your email by clicking the link below:</p>
-                   <p><a href="${verificationLink}">${verificationLink}</a></p>`
-        };
-
-        // Send verification email
-        await transporter.sendMail(mailOptions);
-
-        // Respond with success
-        res.status(200).json({ message: "A new verification link has been sent to your email." });
-    } catch (error) {
-        console.error("Error during resending verification email:", error);
-        res.status(500).json({ message: "An error occurred while resending the verification email." });
-    }
-};
-
-
 
 module.exports = {
     registerUser,
+    setupTwoFA,
+    verify2FA,
     loginUser,
-    confirmLogin,
     updateUser,
-    deleteUser,
-    verifyEmail,
-    resendVerificationEmail
+    deleteUser
 };

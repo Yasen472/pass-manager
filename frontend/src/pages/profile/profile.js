@@ -5,16 +5,7 @@ import ProfilePicture from '../../assets/images/anonymous_picture.png';
 import { FaEdit } from "react-icons/fa";
 import axios from 'axios';
 
-
-
-
-
 // add the editableField component to this page so it works 
-
-
-
-
-
 
 const Profile = () => {
   const { username, email, password, userId } = useAuth();

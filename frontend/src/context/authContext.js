@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const login = (id, user, email, password) => {
+  const login = (id, user, email, password, token) => {
     setIsLoggedIn(true);
     setUserId(id);
     setUsername(user);
@@ -21,17 +21,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('username', user);
     localStorage.setItem('email', email);
     localStorage.setItem('password', password);
+    localStorage.setItem('token', token); // Store token
 };
+
 
   
   const logout = () => {
     setIsLoggedIn(false);
     setUserId(null);
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('username');
-    localStorage.removeItem('email');
-    localStorage.removeItem('password');
+    localStorage.clear();
   };
 
   useEffect(() => {

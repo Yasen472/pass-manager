@@ -1,12 +1,13 @@
 const express = require("express");
-const { registerUser, loginUser, deleteUser, updateUser, verifyEmail, confirmLogin, resendVerificationEmail } = require("../controllers/authController.js");
+const { registerUser, loginUser, deleteUser, updateUser, setupTwoFA, verify2FA } = require("../controllers/authController.js");  // Make sure setupTwoFA is imported
 const admin = require("firebase-admin");
 const credentials = require("../key.json");
+const { verifyToken } = require("../middleware/authMiddleware.js");
 
 // Initialize Firebase
 admin.initializeApp({
     credential: admin.credential.cert(credentials)
-});;
+});
 
 const db = admin.firestore();
 const auth = admin.auth();
@@ -14,12 +15,15 @@ const auth = admin.auth();
 const router = express.Router();
 
 // Auth routes
-router.post('/register', registerUser(db));
-router.post('/login', loginUser(db));          // Standard login with email and password
-router.get('/confirm-login', confirmLogin(db)); // New route for email 2FA confirmation
-router.get('/verify-email', verifyEmail(db));   // Email verification on registration
-router.post('/resend-verification-email', resendVerificationEmail);  // Route for resending verification email
-router.put('/update/:id', updateUser(db, auth));
-router.delete('/delete/:id', deleteUser(db, auth));
+router.post('/register', registerUser(db));  // Register a new user
+router.post('/login', loginUser(db));  // Standard login with email and password
+router.put('/update/:id', verifyToken, updateUser(db, auth));  // Update user details, authenticated
+router.delete('/delete/:id', verifyToken, deleteUser(db, auth));  // Delete user, authenticated
+// 2FA routes
+router.post('/enable-2fa', verifyToken, setupTwoFA(db));  // Enable 2FA (setup)
+router.post('/verify-2fa', verifyToken, verify2FA(db));  // Verify 2FA token
+
+// I will have to implement this
+// router.delete('/delete/:id', verifyToken, isAdmin, deleteUser(db, auth));  // Check if the user is an admin before deletion 
 
 module.exports = router;
