@@ -72,26 +72,7 @@ const registerUser = (db) => async (req, res) => {
             name: `MyApp (${email})`,  // Set a name for the QR code label
         });
 
-        console.log("Generated 2FA Secret:", twofaSecret.base32);  // Debug line
-
-        // Step 5: Generate the QR code URL
-        const otpauthUrl = twofaSecret.otpauth_url;
-        if (!otpauthUrl) {
-            console.error("Failed to generate otpauth_url for 2FA secret");
-            return res.status(500).json({ message: "Failed to generate QR code for 2FA" });
-        }
-
-        // Generate QR code data URL
-        let qrCodeDataURL;
-        try {
-            qrCodeDataURL = await QRCode.toDataURL(otpauthUrl);
-            console.log("Generated QR Code URL:", qrCodeDataURL);  // Debug line
-        } catch (error) {
-            console.error("Error generating QR code:", error);
-            return res.status(500).json({ message: "Error generating QR code." });
-        }
-
-        // Step 6: Save user with hashed password and 2FA secret
+        // Step 5: Save user with hashed password and 2FA secret
         const user = await db.collection("users").add({
             email,
             username,
@@ -102,7 +83,7 @@ const registerUser = (db) => async (req, res) => {
 
         console.log("User registered successfully:", user.id);
 
-        // Step 7: Generate JWT token after registration (before 2FA verification)
+        // Step 6: Generate JWT token after registration (before 2FA verification)
         const payload = {
             userId: user.id,  // Use the Firestore generated user ID
             email,
@@ -110,6 +91,16 @@ const registerUser = (db) => async (req, res) => {
         };
 
         const authToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });  // You can adjust the expiration time as needed
+
+        // Step 7: Generate QR code URL
+        const otpauthUrl = twofaSecret.otpauth_url;
+        let qrCodeDataURL;
+        try {
+            qrCodeDataURL = await QRCode.toDataURL(otpauthUrl);
+        } catch (error) {
+            console.error("Error generating QR code:", error);
+            return res.status(500).json({ message: "Error generating QR code." });
+        }
 
         // Step 8: Send response including JWT token and QR code URL
         res.status(201).json({
@@ -126,14 +117,14 @@ const registerUser = (db) => async (req, res) => {
 
 
 
-
 const setupTwoFA = (db) => async (req, res) => {
     try {
-        // Ensure the user is authenticated and the ID comes from the authenticated user
         const userId = req.user.id;  // Assuming you're using JWT to authenticate the user
-        
+
+        console.log("Authenticated user:", req.user);
+
         // Get user document from Firestore
-        const userDoc = await db.collection("users").doc("userId").get();
+        const userDoc = await db.collection("users").doc(userId).get();
         if (!userDoc.exists) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -142,37 +133,51 @@ const setupTwoFA = (db) => async (req, res) => {
 
         // Check if 2FA is already set up
         if (user.twofaSecret) {
-            return res.status(400).json({ message: "2FA is already set up for this user" });
+            // 2FA is already set up, so just return the QR code for the existing secret
+            const otpauthUrl = speakeasy.otpauthURL({
+                secret: user.twofaSecret,
+                label: `MyApp:${user.username}`,
+                issuer: "MyApp"
+            });
+
+            // Generate the QR code URL using the OTP Auth URL
+            const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
+
+            return res.status(200).json({
+                message: "2FA is already set up",
+                qrCodeUrl
+            });
         }
 
-        // Generate a new 2FA secret using speakeasy
+        // If 2FA secret is not set up, generate it here
         const secret = speakeasy.generateSecret({ length: 20 });
 
-        // Update user with the 2FA secret in the Firestore
+        // Save the new 2FA secret in Firestore
         await db.collection("users").doc(userId).update({
-            twofaSecret: secret.base32,  // Save the base32 secret
+            twofaSecret: secret.base32
         });
 
         // Generate the OTP Auth URL for Google Authenticator
         const otpauthUrl = speakeasy.otpauthURL({
             secret: secret.base32,
-            label: `MyApp:${user.username}`,  // Customize with your app's name and the user's username
-            issuer: "MyApp"  // Customize with your app's name
+            label: `MyApp:${user.username}`,
+            issuer: "MyApp"
         });
 
-        // Generate the QR code URL using the OTP Auth URL
-        const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);  // Make sure QRCode is imported
+        // Generate the QR code URL
+        const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
 
         res.status(200).json({
             message: "2FA setup successful",
-            qrCodeUrl,  // Send the generated QR code as a response
-            secret: secret.base32  // You may or may not want to include this in the response, for later use
+            qrCodeUrl,
+            secret: secret.base32  // Optional: You can send this for later use
         });
     } catch (error) {
         console.error("Error during 2FA setup:", error);
         res.status(500).json({ message: "An error occurred during 2FA setup" });
     }
 };
+
 
 // 2FA Verification: Verify the token entered by the user
 const verify2FA = (db) => async (req, res) => {

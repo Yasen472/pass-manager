@@ -88,56 +88,57 @@ const Register = () => {
     setRepassInputType(prevType => (prevType === 'password' ? 'text' : 'password'));
   };
 
-// In Register component, handleSubmit function
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  // In Register component, handleSubmit function
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // Basic form validation
-  if (!username || !email || !password || !rePassword) {
+    // Basic form validation
+    if (!username || !email || !password || !rePassword) {
       setErrorMessage('Please fill in all fields.');
       return;
-  }
-  if (password !== rePassword) {
+    }
+    if (password !== rePassword) {
       setErrorMessage('Passwords do not match.');
       return;
-  }
-  if (missedRequirements.length > 0) {
+    }
+    if (missedRequirements.length > 0) {
       setErrorMessage('Please ensure all password requirements are met.');
       return;
-  }
+    }
 
-  const userData = { email, password, username };
+    const userData = { email, password, username };
 
-  try {
+    try {
       // Register the user
       const response = await axios.post(`${process.env.REACT_APP_AUTH_URL}/register`, userData);
       debugger;
 
       if (response.status === 201) {
-          // Get the email and token from the registration response
-          const { email, token } = response.data;  // Ensure backend sends a token
-          debugger;
+        // Get the email and token from the registration response
+        const { email, token } = response.data;  // Ensure backend sends a token
+        debugger;
+        console.log(`Token is ${token}`)
+        // Request to enable 2FA, passing the token in the headers
+        const enable2faResponse = await axios.post(
+          `${process.env.REACT_APP_AUTH_URL}/enable-2fa`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }  // Add token to headers
+        );
+        console.log(enable2faResponse);
 
-          // Request to enable 2FA, passing the token in the headers
-          const enable2faResponse = await axios.post(
-              `${process.env.REACT_APP_AUTH_URL}/enable-2fa`,
-              { email },
-              { headers: { Authorization: `Bearer ${token}` } }  // Add token to headers
-          );
-
-          if (enable2faResponse.status === 200) {
-              const qrCodeUrl = enable2faResponse.data.qrCodeUrl;
-              // Navigate to the verify-2fa page and pass the QR code URL
-              navigate('/verify-2fa', { state: { qrCodeUrl } });
-          } else {
-              setErrorMessage('Failed to enable 2FA. Please try again.');
-          }
+        if (enable2faResponse.status === 200) {
+          const qrCodeUrl = enable2faResponse.data.qrCodeUrl;
+          // Navigate to the verify-2fa page and pass the QR code URL
+          navigate('/verify-2fa', { state: { qrCodeUrl } });
+        } else {
+          setErrorMessage('Failed to enable 2FA. Please try again.');
+        }
       }
-  } catch (error) {
-      console.error('Error during registration:', error);
-      setErrorMessage('Registration failed. Please try again.');
-  }
-};
+    } catch (error) {
+      console.error("Error during 2FA setup:", error);
+      console.log({ message: "An error occurred during 2FA setup", error: error.message });
+    }
+  };
 
 
   return (

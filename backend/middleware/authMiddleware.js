@@ -1,25 +1,24 @@
 const jwt = require('jsonwebtoken');
 
 // Verify JWT token middleware
-function verifyToken(req, res, next) {
-    const token = req.headers['authorization'];
+const verifyToken = (req, res, next) => {
+    const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Get token from "Authorization: Bearer <token>"
 
     if (!token) {
-        return res.status(403).json({ message: 'Token is required for authentication.' });
+        return res.status(403).json({ message: "No token provided" });
     }
 
-    // Remove "Bearer" from the token if present
-    const tokenWithoutBearer = token.split(' ')[1];
-
-    jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(500).json({ message: 'Token authentication failed. Please login again.' });
+            return res.status(401).json({ message: "Invalid token" });
         }
-
-        req.user = decoded;
+        
+        // Attach user information (like userId) to the request object
+        req.user = { id: decoded.userId };  // Assuming you store the userId in the payload
+        console.log(`verifyToken is being executed properly`)
         next();
     });
-}
+};
 
 
 module.exports = { verifyToken };
