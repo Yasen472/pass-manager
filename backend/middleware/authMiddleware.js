@@ -15,7 +15,7 @@ const verifyToken = (req, res, next) => {
         
         // Attach user information (like userId) to the request object
         req.user = { id: decoded.userId };  // Assuming you store the userId in the payload
-        console.log(`verifyToken is being executed properly`)
+        console.log(`verifyToken is being executed properly - verifyToken function`)
         next();
     });
 };

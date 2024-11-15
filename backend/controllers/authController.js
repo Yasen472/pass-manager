@@ -39,14 +39,13 @@ const registerUser = (db) => async (req, res) => {
     try {
         const { email, password, username } = req.body;
 
-        // Step 1: Validate password strength
+        // Password validation
         const passwordValidation = validatePassword(password);
         if (passwordValidation !== true) {
-            console.log("Password validation failed:", passwordValidation);
             return res.status(400).json({ message: passwordValidation });
         }
 
-        // Step 2: Check if user already exists by email or username
+        // Check if user already exists by email or username
         const usersRef = db.collection("users");
         const [existingUserSnapshot, existingUsernameSnapshot] = await Promise.all([
             usersRef.where("email", "==", email).get(),
@@ -54,60 +53,32 @@ const registerUser = (db) => async (req, res) => {
         ]);
 
         if (!existingUserSnapshot.empty) {
-            console.log("User with this email already exists:", email);
             return res.status(409).json({ message: "User with this email already exists" });
         }
 
         if (!existingUsernameSnapshot.empty) {
-            console.log("Username already taken:", username);
             return res.status(409).json({ message: "Username already taken" });
         }
 
-        // Step 3: Hash the password with bcrypt
-        const hashedPassword = await bcrypt.hash(password, 10);  // 10 salt rounds
-
-        // Step 4: Generate a 2FA secret for the user
-        const twofaSecret = speakeasy.generateSecret({
-            length: 20,
-            name: `MyApp (${email})`,  // Set a name for the QR code label
-        });
-
-        // Step 5: Save user with hashed password and 2FA secret
+        // Hash the password and save user to Firestore
+        const hashedPassword = await bcrypt.hash(password, 10);
         const user = await db.collection("users").add({
             email,
             username,
             password: hashedPassword,
-            isVerified: false,  // Initially, the user is not verified
-            twofaSecret: twofaSecret.base32,  // Save the base32 encoded secret
+            isVerified: false,
         });
 
-        console.log("User registered successfully:", user.id);
+        // Generate JWT for authentication after registration
+        const payload = { userId: user.id, email, username };
+        const authToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        // Step 6: Generate JWT token after registration (before 2FA verification)
-        const payload = {
-            userId: user.id,  // Use the Firestore generated user ID
-            email,
-            username
-        };
+        console.log(`Auth token from the backend is ${authToken}`);
 
-        const authToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });  // You can adjust the expiration time as needed
-
-        // Step 7: Generate QR code URL
-        const otpauthUrl = twofaSecret.otpauth_url;
-        let qrCodeDataURL;
-        try {
-            qrCodeDataURL = await QRCode.toDataURL(otpauthUrl);
-        } catch (error) {
-            console.error("Error generating QR code:", error);
-            return res.status(500).json({ message: "Error generating QR code." });
-        }
-
-        // Step 8: Send response including JWT token and QR code URL
         res.status(201).json({
             message: "User registered successfully",
-            qrCodeUrl: qrCodeDataURL,
-            userId: user.id,  // Optional, for frontend reference
-            token: authToken  // Send the JWT token to the client
+            token: authToken,
+            userId: user.id,
         });
     } catch (error) {
         console.error("Error during registration:", error);
@@ -116,32 +87,31 @@ const registerUser = (db) => async (req, res) => {
 };
 
 
-
 const setupTwoFA = (db) => async (req, res) => {
     try {
         const userId = req.user.id;  // Assuming you're using JWT to authenticate the user
 
-        console.log("Authenticated user:", req.user);
-
-        // Get user document from Firestore
+        // Retrieve user document from Firestore
         const userDoc = await db.collection("users").doc(userId).get();
+
         if (!userDoc.exists) {
             return res.status(404).json({ message: "User not found" });
         }
 
         const user = userDoc.data();
+        console.log(user.twofaSecret)
 
-        // Check if 2FA is already set up
+        // If 2FA is already set up, generate the QR code with the existing secret
         if (user.twofaSecret) {
-            // 2FA is already set up, so just return the QR code for the existing secret
             const otpauthUrl = speakeasy.otpauthURL({
                 secret: user.twofaSecret,
+                encoding: 'ascii',
                 label: `MyApp:${user.username}`,
                 issuer: "MyApp"
             });
 
-            // Generate the QR code URL using the OTP Auth URL
             const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
+            console.log(`QR code from the backend is ${otpauthUrl}`)
 
             return res.status(200).json({
                 message: "2FA is already set up",
@@ -149,7 +119,7 @@ const setupTwoFA = (db) => async (req, res) => {
             });
         }
 
-        // If 2FA secret is not set up, generate it here
+        // Generate new 2FA secret if not set up
         const secret = speakeasy.generateSecret({ length: 20 });
 
         // Save the new 2FA secret in Firestore
@@ -157,14 +127,12 @@ const setupTwoFA = (db) => async (req, res) => {
             twofaSecret: secret.base32
         });
 
-        // Generate the OTP Auth URL for Google Authenticator
         const otpauthUrl = speakeasy.otpauthURL({
             secret: secret.base32,
             label: `MyApp:${user.username}`,
             issuer: "MyApp"
         });
 
-        // Generate the QR code URL
         const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
 
         res.status(200).json({
@@ -172,6 +140,7 @@ const setupTwoFA = (db) => async (req, res) => {
             qrCodeUrl,
             secret: secret.base32  // Optional: You can send this for later use
         });
+
     } catch (error) {
         console.error("Error during 2FA setup:", error);
         res.status(500).json({ message: "An error occurred during 2FA setup" });
@@ -179,13 +148,17 @@ const setupTwoFA = (db) => async (req, res) => {
 };
 
 
-// 2FA Verification: Verify the token entered by the user
+
 const verify2FA = (db) => async (req, res) => {
     try {
-        const { userId, token } = req.body;
+        const { userId, token, userInputTime } = req.body;  // Expecting userInputTime from client
 
-        // Step 1: Retrieve the user's 2FA secret from the database
+        console.log(userInputTime);
+
+
+        // Step 1: Retrieve the user's 2FA secret from Firestore
         const userDoc = await db.collection("users").doc(userId).get();
+
         if (!userDoc.exists) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -193,18 +166,39 @@ const verify2FA = (db) => async (req, res) => {
         const user = userDoc.data();
         const twofaSecret = user.twofaSecret;
 
-        // Step 2: Verify the token using speakeasy
+        // Step 2: Log the expected OTP (generated token)
+        // const generatedToken = speakeasy.totp({
+        //     secret: twofaSecret,
+        //     encoding: 'base32',
+        // });
+
+        // Step 3: Fetch the current server time from the request body or other service
+        const serverTime = Date.now(); // Server time in milliseconds
+        // console.log("Generated OTP:", generatedToken);
+        console.log("Server Time (Timestamp):", serverTime);
+
+        // Time difference between the server time and the user input time
+        const timeDifference = Math.floor(serverTime - userInputTime);  // In milliseconds
+
+        console.log("Time difference between server and user input time:", timeDifference);
+
+        // Step 4: Log the entered token from the user for comparison
+        console.log("Entered OTP (User's Token):", token);
+
+        // console.log(twoFAToken)
+        // Step 5: Verify the token using speakeasy
         const isVerified = speakeasy.totp.verify({
             secret: twofaSecret,
-            encoding: 'base32',
+            encoding: 'ascii',
             token: token,
+            window: 1,  // Optional: allows a small window of time for the token (typically 30 seconds before/after the expected time)
         });
 
         if (!isVerified) {
             return res.status(400).json({ message: "Invalid 2FA token" });
         }
 
-        // Step 3: Update the user's isVerified status to true
+        // Step 6: Update the user's isVerified status to true
         await db.collection("users").doc(userId).update({
             isVerified: true,
         });
@@ -217,6 +211,9 @@ const verify2FA = (db) => async (req, res) => {
         res.status(500).json({ message: "An error occurred during 2FA verification" });
     }
 };
+
+
+
 
 
 // Login user (with 2FA check)
@@ -236,6 +233,12 @@ const loginUser = (db) => async (req, res) => {
         let user;
         userSnapshot.forEach((doc) => {
             user = { _id: doc.id, ...doc.data() };
+            // Calculate size in bytes
+            // const docData = JSON.stringify(doc.data);
+            // const docSizeInBytes = Buffer.byteLength(docData, 'utf8');
+
+            // Print the document size
+            // console.log(`Document size: ${docSizeInBytes} bytes`);
         });
 
         // Check if the user is verified (2FA setup)
@@ -253,8 +256,9 @@ const loginUser = (db) => async (req, res) => {
         if (user.twofaSecret) {
             const isVerified = speakeasy.totp.verify({
                 secret: user.twofaSecret,
-                encoding: 'base32',
-                token: twoFAToken  // Use the renamed variable for 2FA token
+                encoding: 'ascii',
+                token: twoFAToken,  // Use the renamed variable for 2FA token
+                window: 1// Allow 2 time windows for token verification
             });
 
             if (!isVerified) {
@@ -268,6 +272,8 @@ const loginUser = (db) => async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
+
+
 
         res.status(200).json({ message: "Login successful", token: authToken, username: user.username });
     } catch (error) {

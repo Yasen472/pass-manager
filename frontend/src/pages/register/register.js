@@ -5,36 +5,30 @@ import './register.css';
 import { useAuth } from '../../context/authContext.js';
 import TextureImg from '../../assets/images/texture.jpg';
 import { IoIosEye } from "react-icons/io";
-import { FaEyeSlash, FaCheckCircle, FaTimesCircle } from "react-icons/fa"; // Icons for check and X
+import { FaEyeSlash, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 
 const Register = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isLoggedIn } = useAuth();
 
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rePassword, setRePassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [isPassVisible, setIsPassVisible] = useState(false);
-  const [isRePassVisible, setIsRePassVisible] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isRePasswordVisible, setIsRePasswordVisible] = useState(false);
   const [inputType, setInputType] = useState('password');
   const [repassInputType, setRepassInputType] = useState('password');
   const [metRequirements, setMetRequirements] = useState([]);
   const [missedRequirements, setMissedRequirements] = useState([]);
   const [readyPassword, setReadyPassword] = useState(false);
-  const [showReq, setShowReq] = useState(false); // Show requirements label
+  const [showReq, setShowReq] = useState(false);
   const [showButton, setShowButton] = useState(false);
   const [showReqMenu, setShowReqMenu] = useState(false);
-  const [qrCodeUrl, setQrCodeUrl] = useState(''); // Add state for QR code URL
 
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-  };
-
-  const handleUsernameChange = (e) => {
-    setUsername(e.target.value);
-  }
+  const handleEmailChange = (e) => setEmail(e.target.value);
+  const handleUsernameChange = (e) => setUsername(e.target.value);
 
   const handlePasswordChange = (e) => {
     const newPassword = e.target.value;
@@ -44,9 +38,7 @@ const Register = () => {
     setShowButton(newPassword.length > 0);
   };
 
-  const handleRePasswordChange = (e) => {
-    setRePassword(e.target.value);
-  };
+  const handleRePasswordChange = (e) => setRePassword(e.target.value);
 
   const validatePassword = (password) => {
     const minLength = 8;
@@ -79,20 +71,18 @@ const Register = () => {
   };
 
   const handleVisibilityChange = () => {
-    setIsPassVisible(!isPassVisible);
+    setIsPasswordVisible(!isPasswordVisible);
     setInputType(prevType => (prevType === 'password' ? 'text' : 'password'));
   };
 
   const handleRepassVisibilityChange = () => {
-    setIsRePassVisible(!isRePassVisible);
+    setIsRePasswordVisible(!isRePasswordVisible);
     setRepassInputType(prevType => (prevType === 'password' ? 'text' : 'password'));
   };
 
-  // In Register component, handleSubmit function
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic form validation
     if (!username || !email || !password || !rePassword) {
       setErrorMessage('Please fill in all fields.');
       return;
@@ -109,37 +99,34 @@ const Register = () => {
     const userData = { email, password, username };
 
     try {
-      // Register the user
       const response = await axios.post(`${process.env.REACT_APP_AUTH_URL}/register`, userData);
-      debugger;
 
       if (response.status === 201) {
-        // Get the email and token from the registration response
-        const { email, token } = response.data;  // Ensure backend sends a token
-        debugger;
-        console.log(`Token is ${token}`)
-        // Request to enable 2FA, passing the token in the headers
+        const { userId, token } = response.data;
+
+        console.log(`Auth token from the frontend is ${token}`)
+
+        // Now that the user is registered, let's initiate 2FA setup
         const enable2faResponse = await axios.post(
           `${process.env.REACT_APP_AUTH_URL}/enable-2fa`,
-          {},
-          { headers: { Authorization: `Bearer ${token}` } }  // Add token to headers
+          {},  // Empty body
+          { headers: { Authorization: `Bearer ${token}` } }
         );
-        console.log(enable2faResponse);
 
         if (enable2faResponse.status === 200) {
+          // Receive the 2FA setup QR code URL
           const qrCodeUrl = enable2faResponse.data.qrCodeUrl;
-          // Navigate to the verify-2fa page and pass the QR code URL
-          navigate('/verify-2fa', { state: { qrCodeUrl } });
+          console.log(`QR Code in the frontend is ${qrCodeUrl}`)
+          navigate('/verify-2fa', { state: { qrCodeUrl, userId, token } });
         } else {
           setErrorMessage('Failed to enable 2FA. Please try again.');
         }
       }
     } catch (error) {
+      setErrorMessage('An error occurred during registration or 2FA setup. Please try again.');
       console.error("Error during 2FA setup:", error);
-      console.log({ message: "An error occurred during 2FA setup", error: error.message });
     }
   };
-
 
   return (
     <div className="register-page">
@@ -161,7 +148,7 @@ const Register = () => {
             <label htmlFor='password'>Password</label>
             <div className="register-password-container">
               <input type={inputType} id='password' value={password} onChange={handlePasswordChange} />
-              {!isPassVisible ? (
+              {!isPasswordVisible ? (
                 <IoIosEye className="pass-visibility-icon" size={25} onClick={handleVisibilityChange} />
               ) : (
                 <FaEyeSlash className="visibility-icon" size={25} onClick={handleVisibilityChange} />
@@ -186,7 +173,6 @@ const Register = () => {
               </div>
             ) : null}
 
-            {/* Display the requirements menu on hover */}
             {showReqMenu && (
               <div className="dropdown-requirements">
                 <div className="dropdown-header">
@@ -211,7 +197,7 @@ const Register = () => {
           <label htmlFor='rePassword'>Re-enter Password</label>
           <div className="repassword-container">
             <input type={repassInputType} id='rePassword' value={rePassword} onChange={handleRePasswordChange} />
-            {!isRePassVisible ? (
+            {!isRePasswordVisible ? (
               <IoIosEye className="repass-visibility-icon" size={25} onClick={handleRepassVisibilityChange} />
             ) : (
               <FaEyeSlash className="visibility-icon" size={25} onClick={handleRepassVisibilityChange} />

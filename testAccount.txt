@@ -2,5 +2,3 @@ email - yasengeorgiev44@gmail.com
 password - A123a!78s
 username - Yasen855
 
-
-username - yasco
