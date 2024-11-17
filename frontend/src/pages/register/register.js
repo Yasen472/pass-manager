@@ -9,7 +9,7 @@ import { FaEyeSlash, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 
 const Register = () => {
   const navigate = useNavigate();
-  const { login, isLoggedIn } = useAuth();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');

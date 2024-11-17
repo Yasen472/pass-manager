@@ -37,8 +37,10 @@ const Login = () => {
             const response = await axios.post(`${process.env.REACT_APP_AUTH_URL}/login`, { 
                 email, 
                 password, 
-                twoFACode  // Include 2FA code in the login request
+                twoFACode // Include 2FA code in the login request
             });
+
+            console.log(twoFACode);
 
             if (response.status === 200) {
                 const { _id: userId, username } = response.data;

@@ -34,7 +34,6 @@ const validatePassword = (password) => {
 };
 
 // 2FA Setup: Generate a secret for Google Authenticator
-// 2FA Setup: Generate a secret for Google Authenticator
 const registerUser = (db) => async (req, res) => {
     try {
         const { email, password, username } = req.body;
@@ -166,14 +165,14 @@ const verify2FA = (db) => async (req, res) => {
         const user = userDoc.data();
         const twofaSecret = user.twofaSecret;
 
-        // Step 2: Log the expected OTP (generated token)
-        // const generatedToken = speakeasy.totp({
-        //     secret: twofaSecret,
-        //     encoding: 'base32',
-        // });
-
         // Step 3: Fetch the current server time from the request body or other service
         const serverTime = Date.now(); // Server time in milliseconds
+        const generatedToken = speakeasy.totp({
+            secret: twofaSecret,
+            encoding: 'ascii', // Ensure this matches the encoding during setup
+        });
+        console.log("Generated Token (Server):", generatedToken);
+        console.log("User-Provided Token:", token);
         // console.log("Generated OTP:", generatedToken);
         console.log("Server Time (Timestamp):", serverTime);
 
@@ -185,7 +184,6 @@ const verify2FA = (db) => async (req, res) => {
         // Step 4: Log the entered token from the user for comparison
         console.log("Entered OTP (User's Token):", token);
 
-        // console.log(twoFAToken)
         // Step 5: Verify the token using speakeasy
         const isVerified = speakeasy.totp.verify({
             secret: twofaSecret,
@@ -212,14 +210,9 @@ const verify2FA = (db) => async (req, res) => {
     }
 };
 
-
-
-
-
-// Login user (with 2FA check)
 const loginUser = (db) => async (req, res) => {
     try {
-        const { email, password, token: twoFAToken } = req.body; // Rename token to twoFAToken
+        const { email, password, twoFACode } = req.body; // Renamed token to twoFAToken
 
         // Find user by email
         const usersRef = db.collection("users");
@@ -233,12 +226,6 @@ const loginUser = (db) => async (req, res) => {
         let user;
         userSnapshot.forEach((doc) => {
             user = { _id: doc.id, ...doc.data() };
-            // Calculate size in bytes
-            // const docData = JSON.stringify(doc.data);
-            // const docSizeInBytes = Buffer.byteLength(docData, 'utf8');
-
-            // Print the document size
-            // console.log(`Document size: ${docSizeInBytes} bytes`);
         });
 
         // Check if the user is verified (2FA setup)
@@ -252,13 +239,24 @@ const loginUser = (db) => async (req, res) => {
             return res.status(401).json({ message: "Invalid email or password" });
         }
 
-        // Verify 2FA token if set
         if (user.twofaSecret) {
+            // Generate token on the server using the stored secret
+            const generatedToken = speakeasy.totp({
+                secret: user.twofaSecret,
+                encoding: 'ascii',
+                window: 3 // Allow 1 window before and after the expected time
+            });
+
+            // Log both the generated token (from the server) and the user's token input
+            console.log("Generated Token (Server):", generatedToken);
+            console.log("User-Provided Token:", twoFACode);
+
+            // Verify the token entered by the user
             const isVerified = speakeasy.totp.verify({
                 secret: user.twofaSecret,
                 encoding: 'ascii',
-                token: twoFAToken,  // Use the renamed variable for 2FA token
-                window: 1// Allow 2 time windows for token verification
+                token: twoFACode,  // The token entered by the user
+                window: 1 // Allow 1 window before and after the expected time
             });
 
             if (!isVerified) {
@@ -273,16 +271,12 @@ const loginUser = (db) => async (req, res) => {
             { expiresIn: '1h' }
         );
 
-
-
         res.status(200).json({ message: "Login successful", token: authToken, username: user.username });
     } catch (error) {
         console.error("Error during login:", error);
         res.status(500).json({ message: "An error occurred during login" });
     }
 };
-
-
 
 // Update user
 const updateUser = (db) => async (req, res) => {
