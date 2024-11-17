@@ -1,143 +1,102 @@
-
-  
-  .accounts-page-container {
-    max-width: 1200px;
-    margin: 50px auto;
-    padding: 20px;
-    background-color: #fff;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-  }
-  
-  .vault-title {
-    font-size: 36px;
-    color: #2c3e50;
-    margin-bottom: 40px;
-  }
-  
-  /* Flexbox Layout for Account List */
-  .accounts-list {
+.accounts-page-container {
+    height: calc(100vh - 60px); /* Ensure container takes full height minus the header */
     display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  
-  .account-card {
-    background-color: #ecf0f1;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 20px;
     position: relative;
+}
+
+.left-content-container {
+    width: 30%;
+    padding: 10px;
     display: flex;
-    align-items: center; /* This centers the content vertically */
+    flex-direction: column; /* Stack elements vertically */
+    justify-content: flex-start; /* Align items to the top */
+}
+
+.right-content-container {
+    flex-grow: 1; 
+    padding: 10px;
+    display: flex;
+    flex-direction: column; 
+    justify-content: flex-start; 
+}
+
+/* Search input styling */
+.filtration-container > input {
+    width: 150px;
+    padding: 8px 6px;
+}
+
+/* Flex for filtration container */
+.filtration-container {
+    display: flex;
+    flex-direction: row;
     justify-content: space-between;
-    gap: 15px;
-    height: 160px; /* Define a height for proper vertical alignment */
-  }
+    align-items: center; /* Align input and button horizontally */
+}
 
-  
+/* Sort button styling */
+.sort-btn {
+    border: none;
+    border-radius: 4px;
+    background-color: #3498db;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    padding: 6px 12px; /* Slightly adjusted padding */
+}
 
-  .account-card-profile-image {
-    height: 100px;
-    width:  100px;
-  }
-  
-  .username,
-  .email {
-    font-size: 16px;
-  }
-  
-  .field-container {
+.sort-btn:hover {
+    background-color: #2980b9;
+}
+
+.sort-btn:active {
+    background-color: #1f5f8b;
+    transform: scale(0.98);
+}
+
+/* Vertical divider between the sections */
+.vertical-divider {
+    width: 4px;
+    background-color: #ccc;
+    height: 100%; /* Full height of the container */
+    align-self: stretch;
+}
+
+/* Style the hr element */
+ hr {
+    width: 100%; /* Make it span the full width of the container */
+    border: 1px solid #ccc; /* Light gray border */
+    margin: 15px 0; /* Adjust top and bottom margin for spacing */
+}
+
+.account-details {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
-  
-  .editable-field {
-    width: 70%;
-    padding: 8px;
-    border: 1px solid #bdc3c7;
-    border-radius: 4px;
-    font-size: 14px;
-  }
+    flex-direction: row;
+    gap: 100px;
+}
 
-  .field-container > .input-field {
-    cursor: pointer;
-  }
-  
-  .username,
-  .email {
-    font-size: 16px;
-  }
-  
-  .edit-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #2980b9;
-  }
-  
-  
-  .password-input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #bdc3c7;
-    border-radius: 4px;
-    font-size: 14px;
-  }
-  
-  .visibility-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #2980b9;
-    font-size: 20px;
-  }
-  
-  /* Buttons (Save/Cancel) */
-  .edit-buttons {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-  }
-  
-  .save-btn,
-  .cancel-btn {
-    padding: 8px 15px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-  }
-  
-  .save-btn {
-    background-color: #27ae60;
-    color: #fff;
-  }
-  
-  .cancel-btn {
-    background-color: #e74c3c;
-    color: #fff;
-  }
-  
-  .save-btn:hover {
-    background-color: #2ecc71;
-  }
-  
-  .cancel-btn:hover {
-    background-color: #c0392b;
-  }
+.heading {
+    font-weight: bold;
+    font-size: 1.8rem;
+}
 
-  
-  .editable-field:focus,
-  .password-input:focus {
-    border-color: #3498db;
-    outline: none;
-  }
-  
-  .edit-btn:hover,
-  .visibility-btn:hover {
-    color: #1abc9c;
-  }
-  
+.account-name-heading {
+    font-weight: bold;
+    text-align: center;
+    font-size: 1.8rem;
+}
+
+.left-section {
+    width: fit-content;
+}
+
+.left-section > svg {
+    padding-top: 50px;
+}
+
+
+
+
+
+

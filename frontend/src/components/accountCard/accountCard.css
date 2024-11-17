@@ -1,0 +1,17 @@
+.card-container {
+    display: flex;
+    flex-direction: row;
+    width: 70%;
+    height: 80px;
+    align-items: center;
+    gap: 10px;
+    background-color: #f2f0f0;
+    border-radius: 10px;
+    margin-top: 5px;
+    font-size: 1.3rem;
+    cursor: pointer;
+}
+
+.icon-container > svg {
+    margin-top: 6px;
+}

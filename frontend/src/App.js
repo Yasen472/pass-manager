@@ -8,6 +8,7 @@ import Navbar from './components/navbar/navbar.js';
 import Accounts from './pages/accounts/accounts.js';
 import Profile from './pages/profile/profile.js';
 import Verify2FA from './components/verification/verify2Fa.js';
+import DetailsCard from './components/detailsCard/detailsCard.js';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/accounts" element={<Accounts />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/verify-2fa" element={<Verify2FA />} />
+        <Route path="/details-card" element={<DetailsCard />} />
       </Routes>
     </AuthProvider>
   );
