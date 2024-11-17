@@ -1,132 +1,248 @@
+/* Main container */
 .accounts-page-container {
-    height: calc(100vh - 60px); /* Ensure container takes full height minus the header */
+    height: calc(100vh - 60px);
     display: flex;
     position: relative;
+    background-color: #f5f7fa;
+    gap: 20px;
+    padding: 20px;
 }
 
+/* Left section styling */
 .left-content-container {
-    width: 30%;
-    padding: 10px;
+    width: 35%;
+    padding: 24px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     display: flex;
-    flex-direction: column; /* Stack elements vertically */
-    justify-content: flex-start; /* Align items to the top */
+    flex-direction: column;
+    gap: 20px;
 }
 
+/* Right section styling */
 .right-content-container {
-    flex-grow: 1; 
-    padding: 10px;
+    flex-grow: 1;
+    padding: 24px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     display: flex;
-    flex-direction: column; 
-    justify-content: flex-start; 
+    flex-direction: column;
+    gap: 20px;
 }
 
-/* Search input styling */
-.filtration-container > input {
-    width: 150px;
-    padding: 8px 6px;
-}
-
-/* Flex for filtration container */
-.filtration-container {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center; /* Align input and button horizontally */
-}
-
-/* Sort button styling */
-.sort-btn {
-    border: none;
-    border-radius: 4px;
-    background-color: #3498db;
-    color: white;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    padding: 6px 12px; /* Slightly adjusted padding */
-}
-
-.sort-btn:hover {
-    background-color: #2980b9;
-}
-
-.sort-btn:active {
-    background-color: #1f5f8b;
-    transform: scale(0.98);
-}
-
-/* Vertical divider between the sections */
-.vertical-divider {
-    width: 4px;
-    background-color: #ccc;
-    height: 100%; /* Full height of the container */
-    align-self: stretch;
-}
-
-/* Style the hr element */
- hr {
-    width: 100%; /* Make it span the full width of the container */
-    border: 1px solid #ccc; /* Light gray border */
-    margin: 15px 0; /* Adjust top and bottom margin for spacing */
-}
-
-.account-details {
-    display: flex;
-    flex-direction: row;
-    gap: 100px;
-}
-
+/* Headings */
 .heading {
-    font-weight: bold;
-    font-size: 1.8rem;
+    font-size: 24px;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 8px;
 }
 
 .account-name-heading {
-    font-weight: bold;
+    font-size: 28px;
+    font-weight: 600;
+    color: #2d3748;
     text-align: center;
-    font-size: 1.8rem;
+    margin: 16px 0;
 }
 
-.left-section {
-    width: fit-content;
-}
-
-.left-section > svg {
-    padding-top: 50px;
-}
-
-
-
-
-/* .add-account-form {
-    margin-top: 20px;
-}
-
-.add-account-form form {
+/* Filtration container */
+.filtration-container {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 20px;
 }
 
-.add-account-form input {
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+.filtration-container input {
+    flex: 1;
+    padding: 10px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.filtration-container input:focus {
+    outline: none;
+    border-color: #4079ff;
+    box-shadow: 0 0 0 3px rgba(64, 121, 255, 0.1);
+}
+
+/* Buttons */
+.sort-btn, .add-btn, .edit-btn, .save-btn, .cancel-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sort-btn {
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
+.sort-btn:hover {
+    background-color: #e2e8f0;
 }
 
 .add-btn {
     background-color: #4079ff;
     color: white;
-    padding: 10px;
-    border: none;
-    border-radius: 5px;
+}
+
+.add-btn:hover {
+    background-color: #2563eb;
+}
+
+.edit-btn {
+    background-color: #4079ff;
+    color: white;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.edit-btn:hover {
+    background-color: #2563eb;
+}
+
+.save-btn {
+    background-color: #10b981;
+    color: white;
+}
+
+.save-btn:hover {
+    background-color: #059669;
+}
+
+.cancel-btn {
+    background-color: #ef4444;
+    color: white;
+}
+
+.cancel-btn:hover {
+    background-color: #dc2626;
+}
+
+/* Form styling */
+.add-account-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.add-account-form input {
+    padding: 10px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.add-account-form input:focus {
+    outline: none;
+    border-color: #4079ff;
+    box-shadow: 0 0 0 3px rgba(64, 121, 255, 0.1);
+}
+
+/* Password container */
+.password-container {
+    position: relative;
+}
+
+.password-visibility-icon {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
     cursor: pointer;
-    font-size: 16px;
-} */
+    color: #64748b;
+}
 
+/* Account details */
+.details {
+    margin-top: 24px;
+}
 
+.details p {
+    margin: 12px 0;
+    font-size: 14px;
+    color: #475569;
+}
 
+.details strong {
+    color: #2d3748;
+    margin-right: 8px;
+}
 
+.acc-password-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+}
 
+.acc-password-label {
+    font-weight: 600;
+    color: #2d3748;
+}
 
+.acc-password-placeholder {
+    color: #64748b;
+    letter-spacing: 2px;
+}
+
+/* Form buttons container */
+.form-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+/* Dividers */
+.vertical-divider {
+    width: 1px;
+    background-color: #e2e8f0;
+    height: 100%;
+    margin: 0 20px;
+}
+
+hr {
+    border: none;
+    height: 1px;
+    background-color: #e2e8f0;
+    margin: 16px 0;
+}
+
+/* Profile icon styling */
+.left-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+.left-section svg {
+    color: #4079ff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .accounts-page-container {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .left-content-container {
+        width: 100%;
+    }
+
+    .vertical-divider {
+        display: none;
+    }
+}

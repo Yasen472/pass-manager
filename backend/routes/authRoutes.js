@@ -1,6 +1,6 @@
 const express = require("express");
 const { registerUser, loginUser, deleteUser, updateUser, setupTwoFA, verify2FA } = require("../controllers/authController.js");
-const { createAccount, getAccountsByUser, updateAccount, deleteAccount, getAccountById } = require("../controllers/accountsController.js"); // Import account-related controllers
+const { createAccount, getAccountsByOwner, updateAccount, deleteAccount, getAccountById } = require("../controllers/accountsController.js"); // Updated import statement
 const admin = require("firebase-admin");
 const credentials = require("../key.json");
 const { verifyToken } = require("../middleware/authMiddleware.js");
@@ -32,13 +32,11 @@ router.post('/enable-2fa', verifyToken, setupTwoFA(db));  // Enable 2FA for a us
 router.post('/verify-2fa', verifyToken, verify2FA(db));  // Verify 2FA token
 
 // Account management routes
-router.post('/accounts', verifyToken, createAccount(db)); 
-router.get('/accounts/:userId', verifyToken, getAccountsByUser(db)); 
-router.get('/account/:accountId', verifyToken, getAccountById(db)); 
-router.put('/account/:accountId', verifyToken, updateAccount(db)); 
-// Update a specific account
-// Requires: accountId (from params)
-// Optional fields: website, email, password, username
-router.delete('/account/:accountId', verifyToken, deleteAccount(db)); 
+router.post('/accounts', verifyToken, createAccount(db));  // Create a new account
+// Get all accounts associated with a specific ownerId
+router.get('/accounts/:ownerId', verifyToken, getAccountsByOwner(db)); 
+router.get('/account/:accountId', verifyToken, getAccountById(db)); // Get a specific account by accountId
+router.put('/account/:accountId', verifyToken, updateAccount(db));  // Update account details
+router.delete('/account/:accountId', verifyToken, deleteAccount(db)); // Delete a specific account
 
 module.exports = router;

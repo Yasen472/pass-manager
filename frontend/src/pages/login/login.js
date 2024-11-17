@@ -26,28 +26,25 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMessage('');  // Clear any previous errors
-        debugger;
-        // Basic validation for empty fields
+    
         if (!email || !password || !twoFACode) {  // Check if all fields are filled
             setErrorMessage('Please fill in all fields, including the 2FA code.');
             return;
         }
-
+    
         try {
             const response = await axios.post(`${process.env.REACT_APP_AUTH_URL}/login`, { 
                 email, 
                 password, 
                 twoFACode // Include 2FA code in the login request
             });
-
-            console.log(twoFACode);
-
+    
             if (response.status === 200) {
-                const { _id: userId, username } = response.data;
+                const { _id: userId, username, token } = response.data; // Assuming token is returned here
                 console.log('Login successful:', response.data);
-
-                // Store user details and navigate to the home page
-                login(userId, username, email, password);
+    
+                // Store user details and token, then navigate to home
+                login(userId, username, email, password, token); // Pass token here
                 setEmail('');
                 setPassword('');
                 setTwoFACode('');  // Clear 2FA code field after successful login
@@ -59,6 +56,7 @@ const Login = () => {
             setErrorMessage(message);
         }
     };
+    
 
     return (
         <div className="login-page">

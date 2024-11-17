@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs"); // For encrypting passwords securely
+const validator = require("validator");
 
 /**
  * Function to create a new account for a user.
@@ -7,25 +8,13 @@ const bcrypt = require("bcryptjs"); // For encrypting passwords securely
  * @param {Object} db - Firestore database instance.
  * @returns {Function} Express.js route handler.
  */
-const validator = require("validator");
-
 const createAccount = (db) => async (req, res) => {
     try {
-        const { userId, website, username, email, password } = req.body;
+        const { ownerId, accountName, username, email, password } = req.body;
 
         // Validate required fields
-        if (!userId || !website || !email || !password) {
-            return res.status(400).json({ message: "UserId, website, email, and password are required" });
-        }
-
-        // Validate the website URL
-        let formattedWebsite = website.trim();
-        if (!/^https?:\/\//i.test(formattedWebsite)) {
-            formattedWebsite = `https://${formattedWebsite}`;
-        }
-
-        if (!validator.isURL(formattedWebsite)) {
-            return res.status(400).json({ message: "Website must be a valid URL" });
+        if (!ownerId || !accountName || !email || !password) {
+            return res.status(400).json({ message: "ownerId, accountName, email, and password are required" });
         }
 
         // Encrypt the password
@@ -33,8 +22,8 @@ const createAccount = (db) => async (req, res) => {
 
         // Save the account to Firestore
         const account = await db.collection("accounts").add({
-            userId,
-            website: formattedWebsite,
+            ownerId, // Associate the account with the ownerId
+            accountName, // Account name provided by the user
             username: username || null,
             email,
             password: encryptedPassword,
@@ -51,29 +40,28 @@ const createAccount = (db) => async (req, res) => {
     }
 };
 
-
 /**
- * Function to retrieve all accounts saved by a specific user.
- * - Fetches accounts from Firestore based on the userId.
+ * Function to retrieve all accounts saved by a specific owner.
+ * - Fetches accounts from Firestore based on the ownerId.
  * 
  * @param {Object} db - Firestore database instance.
  * @returns {Function} Express.js route handler.
  */
-const getAccountsByUser = (db) => async (req, res) => {
+const getAccountsByOwner = (db) => async (req, res) => {
     try {
-        const { userId } = req.params; // Extract userId from the request parameters
+        const { ownerId } = req.params; // Extract ownerId from the request parameters
 
-        // Validate that userId is provided
-        if (!userId) {
-            return res.status(400).json({ message: "UserId is required" });
+        // Validate that ownerId is provided
+        if (!ownerId) {
+            return res.status(400).json({ message: "ownerId is required" });
         }
 
-        // Query the "accounts" collection for accounts linked to this userId
-        const accountsSnapshot = await db.collection("accounts").where("userId", "==", userId).get();
+        // Query the "accounts" collection for accounts linked to this ownerId
+        const accountsSnapshot = await db.collection("accounts").where("ownerId", "==", ownerId).get();
 
         // Check if no accounts are found
         if (accountsSnapshot.empty) {
-            return res.status(404).json({ message: "No accounts found for this user" });
+            return res.status(404).json({ message: "No accounts found for this owner" });
         }
 
         // Map the account data into an array to send as the response
@@ -92,7 +80,7 @@ const getAccountsByUser = (db) => async (req, res) => {
 
 /**
  * Function to update account details for a specific account.
- * - Updates fields like website, username, email, or password.
+ * - Updates fields like accountName, username, email, or password.
  * 
  * @param {Object} db - Firestore database instance.
  * @returns {Function} Express.js route handler.
@@ -100,7 +88,7 @@ const getAccountsByUser = (db) => async (req, res) => {
 const updateAccount = (db) => async (req, res) => {
     try {
         const { accountId } = req.params; // Extract accountId from the request parameters
-        const { website, username, email, password } = req.body; // Fields to update
+        const { accountName, username, email, password } = req.body; // Fields to update
 
         // Validate that accountId is provided
         if (!accountId) {
@@ -109,7 +97,7 @@ const updateAccount = (db) => async (req, res) => {
 
         // Prepare updates object with fields to update
         const updates = {};
-        if (website) updates.website = website; // Update website if provided
+        if (accountName) updates.accountName = accountName; // Update accountName if provided
         if (username) updates.username = username; // Update username if provided
         if (email) updates.email = email; // Update email if provided
         if (password) updates.password = await bcrypt.hash(password, 10); // Encrypt and update password if provided
@@ -191,7 +179,7 @@ const getAccountById = (db) => async (req, res) => {
 // Export all account-related functions
 module.exports = {
     createAccount,
-    getAccountsByUser,
+    getAccountsByOwner,
     updateAccount,
     deleteAccount,
     getAccountById,
