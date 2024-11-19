@@ -146,18 +146,13 @@ const setupTwoFA = (db) => async (req, res) => {
     }
 };
 
-
-
 const verify2FA = (db) => async (req, res) => {
     try {
-        const { userId, token, userInputTime } = req.body;  // Expecting userInputTime from client
+        const { token, userInputTime } = req.body;
+        const userId = req.user.id;  // Get userId from the middleware
 
-        console.log(userInputTime);
-
-
-        // Step 1: Retrieve the user's 2FA secret from Firestore
+        // Fetch the user document
         const userDoc = await db.collection("users").doc(userId).get();
-
         if (!userDoc.exists) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -165,50 +160,28 @@ const verify2FA = (db) => async (req, res) => {
         const user = userDoc.data();
         const twofaSecret = user.twofaSecret;
 
-        // Step 3: Fetch the current server time from the request body or other service
-        const serverTime = Date.now(); // Server time in milliseconds
-        const generatedToken = speakeasy.totp({
-            secret: twofaSecret,
-            encoding: 'ascii', // Ensure this matches the encoding during setup
-        });
-        console.log("Generated Token (Server):", generatedToken);
-        console.log("User-Provided Token:", token);
-        // console.log("Generated OTP:", generatedToken);
-        console.log("Server Time (Timestamp):", serverTime);
-
-        // Time difference between the server time and the user input time
-        const timeDifference = Math.floor(serverTime - userInputTime);  // In milliseconds
-
-        console.log("Time difference between server and user input time:", timeDifference);
-
-        // Step 4: Log the entered token from the user for comparison
-        console.log("Entered OTP (User's Token):", token);
-
-        // Step 5: Verify the token using speakeasy
+        // Generate token and verify
         const isVerified = speakeasy.totp.verify({
             secret: twofaSecret,
             encoding: 'ascii',
-            token: token,
-            window: 1,  // Optional: allows a small window of time for the token (typically 30 seconds before/after the expected time)
+            token,
+            window: 1,
         });
 
         if (!isVerified) {
             return res.status(400).json({ message: "Invalid 2FA token" });
         }
 
-        // Step 6: Update the user's isVerified status to true
-        await db.collection("users").doc(userId).update({
-            isVerified: true,
-        });
+        // Update user's `isVerified` status
+        await db.collection("users").doc(userId).update({ isVerified: true });
 
-        res.status(200).json({
-            message: "2FA verification successful. User is now verified.",
-        });
+        res.status(200).json({ message: "2FA verification successful. User is now verified." });
     } catch (error) {
         console.error("Error during 2FA verification:", error);
         res.status(500).json({ message: "An error occurred during 2FA verification" });
     }
 };
+
 
 const loginUser = (db) => async (req, res) => {
     try {
@@ -307,7 +280,7 @@ const updateUser = (db) => async (req, res) => {
 // Delete user
 const deleteUser = (db) => async (req, res) => {
     try {
-        const userId = req.params.id;
+        const userId = req.params.id;   
 
         await db.collection("users").doc(userId).delete();
 

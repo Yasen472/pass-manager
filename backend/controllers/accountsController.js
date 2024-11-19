@@ -10,11 +10,19 @@ const validator = require("validator");
  */
 const createAccount = (db) => async (req, res) => {
     try {
-        const { ownerId, accountName, username, email, password } = req.body;
+        const { accountName, username, email, password } = req.body;
+
+        // Get ownerId from a secure source (e.g., authentication middleware)
+        const ownerId = req.user?.id; // Assume `req.user` is populated by an authentication middleware
+
+        // Validate that ownerId is available
+        if (!ownerId) {
+            return res.status(400).json({ message: "OwnerId is required and must be set by the system" });
+        }
 
         // Validate required fields
-        if (!ownerId || !accountName || !email || !password) {
-            return res.status(400).json({ message: "ownerId, accountName, email, and password are required" });
+        if (!accountName || !email || !password) {
+            return res.status(400).json({ message: "accountName, email, and password are required" });
         }
 
         // Encrypt the password
@@ -39,6 +47,7 @@ const createAccount = (db) => async (req, res) => {
         res.status(500).json({ message: "An error occurred while saving the account" });
     }
 };
+
 
 /**
  * Function to retrieve all accounts saved by a specific owner.

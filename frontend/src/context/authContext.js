@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [password, setPassword] = useState('');
 
   const login = (id, user, email, password, token) => {
+    debugger;
     setIsLoggedIn(true);
     setUserId(id);
     setUsername(user);

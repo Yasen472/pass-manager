@@ -1,5 +1,6 @@
 const express = require("express");
 const authRoutes = require('./routes/authRoutes.js'); // Make sure to include the file extension
+const accountsRoutes = require('./routes/accountRoutes.js');  // Accounts routes
 const cors = require("cors");
 
 // Initialize app
@@ -22,6 +23,7 @@ app.get('/api/time', (req, res) => {
 
 // Routes
 app.use('/auth', authRoutes); // Authentication routes
+app.use('/api', accountsRoutes); // Authentication routes
 
 const PORT = 8080;
 app.listen(PORT, () => {

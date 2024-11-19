@@ -1,127 +1,188 @@
 import React, { useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode'; // Correct import
+import jwtDecode from 'jwt-decode'; // Fix import here
 import './accounts.css';
 import { CiSearch } from "react-icons/ci";
 import { CgProfile } from "react-icons/cg";
-import { FiEye, FiEyeOff } from "react-icons/fi"; // Visibility icons
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import AccountCard from '../../components/accountCard/accountCard.js';
 import { useAuth } from '../../context/authContext.js';
 
+const API_BASE_URL = 'http://localhost:8080'; // Backend URL
+
 const Accounts = () => {
-    const [userId, setUserId] = useState(null); // State to store userId after decoding the token
-    const [accounts, setAccounts] = useState([]); // State to store the list of accounts
-    const [selectedAccount, setSelectedAccount] = useState(null); // State for selected account
-    const [searchTerm, setSearchTerm] = useState(""); // State for search input
+    const [userId, setUserId] = useState(null);
+    const [accounts, setAccounts] = useState([]);
+    const [selectedAccount, setSelectedAccount] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
     const [newAccount, setNewAccount] = useState({
         accountName: '',
         email: '',
         username: '',
         password: '',
-    }); // State for new account form
-    const [isAddingAccount, setIsAddingAccount] = useState(false); // Toggle for showing add account form
-    const [isEditing, setIsEditing] = useState(false); // Toggle for editing mode
-    const [passwordVisible, setPasswordVisible] = useState(false); // State to manage password visibility
+    });
+    const [isAddingAccount, setIsAddingAccount] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [passwordVisible, setPasswordVisible] = useState(false);
 
-    // Fetch userId from the token when the component mounts
+    // Fetch userId from backend
     useEffect(() => {
-        // Get the token from localStorage (or wherever it is stored)
-        const token = localStorage.getItem('token'); // Assuming the JWT is stored in localStorage
-        if (token) {
-            try {
-                // Decode the JWT token to get the payload
-                const decodedToken = jwtDecode(token);
-                // Extract the userId from the decoded token
-                setUserId(decodedToken.id); // Assuming the token payload contains the 'id' field
-            } catch (error) {
-                console.error("Error decoding the token:", error);
+        const fetchUserId = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error("Token not found in localStorage.");
+                return;
             }
-        }
-    }, []); // Empty dependency array means this runs once on mount
 
-    // Simulate hardcoded accounts
-    useEffect(() => {
-        const hardcodedAccounts = [
-            {
-                id: 1,
-                accountName: 'Google',
-                email: 'example@gmail.com',
-                username: 'exampleUser',
-                password: 'password123',
-                createdAt: '2024-01-01T10:00:00Z',
-                updatedAt: '2024-01-01T10:00:00Z',
-            },
-            {
-                id: 2,
-                accountName: 'Facebook',
-                email: 'example2@gmail.com',
-                username: 'userFB',
-                password: 'password456',
-                createdAt: '2024-01-02T11:00:00Z',
-                updatedAt: '2024-01-02T11:00:00Z',
-            },
-        ];
-        setAccounts(hardcodedAccounts); // Set the hardcoded accounts when the component mounts
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/user-id`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                setUserId(data.userId);
+            } catch (error) {
+                console.error("Error fetching userId:", error);
+            }
+        };
+
+        if (localStorage.getItem('token')) {
+            fetchUserId();
+        }
     }, []);
 
-    // Handle form input changes
+    // Fetch accounts from backend
+    const fetchAccounts = async () => {
+        if (!userId) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/accounts/${userId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setAccounts(data);
+        } catch (error) {
+            console.error("Error fetching accounts:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchAccounts();
+    }, [userId]);
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setNewAccount((prev) => ({ ...prev, [name]: value }));
 
-        // If editing an account, update selectedAccount
         if (selectedAccount && isEditing) {
             setSelectedAccount((prev) => ({ ...prev, [name]: value }));
         }
     };
 
-    // Handle new account submission
-    const handleSaveAccount = (e) => {
+    const handleSaveAccount = async (e) => {
         e.preventDefault();
 
-        const currentTimestamp = new Date().toISOString();
+        try {
+            if (!userId) {
+                console.error("UserId is not available");
+                return;
+            }
 
-        const newAccountData = {
-            id: accounts.length + 1,
-            ...newAccount,
-            createdAt: currentTimestamp,
-            updatedAt: currentTimestamp,
-        };
+            const response = await fetch(`${API_BASE_URL}/api/accounts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    ownerId: userId,
+                    ...newAccount
+                }),
+            });
 
-        setAccounts((prev) => [...prev, newAccountData]);
-        setNewAccount({ accountName: '', email: '', username: '', password: '' }); // Reset form
-        setIsAddingAccount(false); // Hide the form after saving
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            setNewAccount({ accountName: '', email: '', username: '', password: '' });
+            setIsAddingAccount(false);
+            fetchAccounts();
+        } catch (error) {
+            console.error("Error saving account:", error);
+        }
     };
 
-    // Save the changes after editing the selected account
-    const handleSaveEditedAccount = () => {
-        const currentTimestamp = new Date().toISOString();
+    const handleSaveEditedAccount = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/accounts/${selectedAccount.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    accountName: selectedAccount.accountName,
+                    email: selectedAccount.email,
+                    username: selectedAccount.username,
+                    password: selectedAccount.password,
+                }),
+            });
 
-        setSelectedAccount((prev) => ({
-            ...prev,
-            updatedAt: currentTimestamp,
-        }));
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-        setIsEditing(false);
+            fetchAccounts();
+            setIsEditing(false);
+        } catch (error) {
+            console.error("Error updating account:", error);
+        }
     };
 
-    // Filter accounts by search term
+    const handleDeleteAccount = async (accountId) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            setAccounts(accounts.filter(account => account.id !== accountId));
+            if (selectedAccount?.id === accountId) {
+                setSelectedAccount(null);
+            }
+        } catch (error) {
+            console.error("Error deleting account:", error);
+        }
+    };
+
     const filteredAccounts = accounts.filter(account =>
         account.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         account.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Toggle password visibility
     const togglePasswordVisibility = () => {
         setPasswordVisible((prevState) => !prevState);
-    };
-
-    // Function to format the date
-    const formatDate = (dateStr) => {
-        const date = new Date(dateStr);
-        if (isNaN(date)) {
-            return "Invalid date";
-        }
-        return date.toLocaleString();
     };
 
     return (
@@ -144,6 +205,7 @@ const Accounts = () => {
                         key={account.id}
                         account={account}
                         onClick={() => setSelectedAccount(account)}
+                        onDelete={() => handleDeleteAccount(account.id)}
                     />
                 ))}
             </div>
@@ -233,50 +295,60 @@ const Accounts = () => {
                                                 value={selectedAccount.password}
                                                 onChange={handleInputChange}
                                             />
-                                            <span className="password-visibility-icon" onClick={togglePasswordVisibility}>
+                                            <span
+                                                className="password-visibility-icon"
+                                                onClick={togglePasswordVisibility}
+                                            >
                                                 {passwordVisible ? <FiEyeOff /> : <FiEye />}
                                             </span>
-                                        </div>
-                                        <div className="form-buttons">
-                                            <button
-                                                type="button"
-                                                className="save-btn"
-                                                onClick={handleSaveEditedAccount}
-                                            >
-                                                Save Changes
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="cancel-btn"
-                                                onClick={() => setIsEditing(false)}
-                                            >
-                                                Cancel
-                                            </button>
                                         </div>
                                     </>
                                 ) : (
                                     <>
-                                        <p><strong>Email:</strong> {selectedAccount.email}</p>
-                                        <p><strong>Username:</strong> {selectedAccount.username}</p>
-                                        <div className="acc-password-container">
-                                            <span className="acc-password-label">Password:</span>
-                                            <span className="acc-password-placeholder">*****</span>
+                                        <div className="email-label">Email</div>
+                                        <div>{selectedAccount.email}</div>
+                                        <div className="username-label">Username</div>
+                                        <div>{selectedAccount.username}</div>
+                                        <div className="password-label">Password</div>
+                                        <div className="password">
+                                            {passwordVisible ? selectedAccount.password : "••••••••"}
+                                            <span
+                                                className="password-visibility-icon"
+                                                onClick={togglePasswordVisibility}
+                                            >
+                                                {passwordVisible ? <FiEyeOff /> : <FiEye />}
+                                            </span>
                                         </div>
-                                        <p><strong>Created At:</strong> {formatDate(selectedAccount.createdAt)}</p>
-                                        <p><strong>Updated At:</strong> {formatDate(selectedAccount.updatedAt)}</p>
-                                        <button
-                                            className="edit-btn"
-                                            onClick={() => setIsEditing(true)}
-                                        >
-                                            Edit
-                                        </button>
                                     </>
                                 )}
                             </div>
                         </div>
+                        <div className="bottom-buttons">
+                            {isEditing ? (
+                                <>
+                                    <button className="save-btn" onClick={handleSaveEditedAccount}>Save</button>
+                                    <button
+                                        className="cancel-btn"
+                                        onClick={() => setIsEditing(false)}
+                                    >
+                                        Cancel
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button className="edit-btn" onClick={() => setIsEditing(true)}>Edit</button>
+                                    <button
+                                        className="delete-btn"
+                                        onClick={() => handleDeleteAccount(selectedAccount.id)}
+                                    >
+                                        Delete
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </>
                 ) : (
-                    <div className="heading">Select or Add an Account</div>
+                    <div className="heading">No Account Selected</div>
                 )}
             </div>
         </div>
@@ -284,3 +356,4 @@ const Accounts = () => {
 };
 
 export default Accounts;
+

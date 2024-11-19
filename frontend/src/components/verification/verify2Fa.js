@@ -9,14 +9,13 @@ const Verify2FA = () => {
   const { qrCodeUrl, userId, token: authToken } = location.state || {}; // Ensure userId and token are passed in state
   const [twofaToken, setTwofaToken] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const {isLoggedIn} = useAuth();
+  const { isLoggedIn, login } = useAuth(); // Destructure login from useAuth
 
   const handleTokenChange = (e) => {
     setTwofaToken(e.target.value);
   };
 
   const handleVerify2FA = async () => {
-    // Debugging before sending request
     console.log("Starting 2FA verification...");
     console.log("User ID: ", userId);
     console.log("Entered Token: ", twofaToken);
@@ -24,23 +23,28 @@ const Verify2FA = () => {
 
     try {
       const userInputTime = Date.now();
-      console.log(userInputTime)
+      console.log(userInputTime);
+
       const response = await axios.post(
         `${process.env.REACT_APP_AUTH_URL}/verify-2fa`,
         { userId, token: twofaToken, userInputTime }, // Send userId and 2FA token
         { headers: { Authorization: `Bearer ${authToken}` } } // Auth token if required
       );
 
-      console.log("Response from server:", response); // Log the full response from the server
+      console.log("Response from server:", response);
 
       if (response.status === 200) {
-        // 2FA verification was successful
         console.log("2FA verification successful. Redirecting to dashboard...");
-        
-        navigate('/dashboard'); // Redirect to a protected page after verification
+
+        // Destructure user data and token from the server response
+        // const { user, email, token, id } = response.data; - old
+        const { user, email, id } = response.data;
+
+        // Invoke login function to update the authentication context
+        login(id, user, email, '', authToken); // Pass user details and token to login
+        navigate('/accounts'); // Redirect to a protected page after verification
       }
     } catch (error) {
-      // More detailed error logging
       console.error('Error during 2FA verification:', error);
       if (error.response) {
         console.log("Error response status:", error.response.status);
@@ -78,3 +82,4 @@ const Verify2FA = () => {
 };
 
 export default Verify2FA;
+

@@ -48,7 +48,7 @@ const Login = () => {
                 setEmail('');
                 setPassword('');
                 setTwoFACode('');  // Clear 2FA code field after successful login
-                navigate('/');
+                navigate('/accounts');
             }
         } catch (error) {
             console.error('Error during login:', error);

@@ -9,6 +9,8 @@ import Accounts from './pages/accounts/accounts.js';
 import Profile from './pages/profile/profile.js';
 import Verify2FA from './components/verification/verify2Fa.js';
 import DetailsCard from './components/detailsCard/detailsCard.js';
+import SecurityQuestionsForm from './components/securityQuestions/securityQuestionsForm.js';
+import PasswordSetup from './pages/passwordSetup/passwordSetup.js';
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/verify-2fa" element={<Verify2FA />} />
         <Route path="/details-card" element={<DetailsCard />} />
+        <Route path="/sec-questions-form" element={<SecurityQuestionsForm />} />
+        <Route path="/new-password-setup" element={<PasswordSetup />} />
       </Routes>
     </AuthProvider>
   );
