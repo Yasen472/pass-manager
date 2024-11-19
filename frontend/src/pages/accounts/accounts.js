@@ -5,7 +5,6 @@ import { CiSearch } from "react-icons/ci";
 import { CgProfile } from "react-icons/cg";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import AccountCard from '../../components/accountCard/accountCard.js';
-import { useAuth } from '../../context/authContext.js';
 
 const API_BASE_URL = 'http://localhost:8080'; // Backend URL
 
@@ -129,7 +128,9 @@ const Accounts = () => {
 
     const handleSaveEditedAccount = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/accounts/${selectedAccount.id}`, {
+            debugger;
+            console.log(selectedAccount.id)
+            const response = await fetch(`${API_BASE_URL}/api/accounts/update/${selectedAccount.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -295,60 +296,41 @@ const Accounts = () => {
                                                 value={selectedAccount.password}
                                                 onChange={handleInputChange}
                                             />
-                                            <span
-                                                className="password-visibility-icon"
-                                                onClick={togglePasswordVisibility}
-                                            >
+                                            <span className="password-visibility-icon" onClick={togglePasswordVisibility}>
                                                 {passwordVisible ? <FiEyeOff /> : <FiEye />}
                                             </span>
                                         </div>
                                     </>
                                 ) : (
                                     <>
-                                        <div className="email-label">Email</div>
                                         <div>{selectedAccount.email}</div>
-                                        <div className="username-label">Username</div>
                                         <div>{selectedAccount.username}</div>
-                                        <div className="password-label">Password</div>
-                                        <div className="password">
-                                            {passwordVisible ? selectedAccount.password : "••••••••"}
-                                            <span
-                                                className="password-visibility-icon"
-                                                onClick={togglePasswordVisibility}
-                                            >
-                                                {passwordVisible ? <FiEyeOff /> : <FiEye />}
-                                            </span>
-                                        </div>
                                     </>
                                 )}
                             </div>
                         </div>
-                        <div className="bottom-buttons">
+                        <div className="form-buttons">
                             {isEditing ? (
-                                <>
-                                    <button className="save-btn" onClick={handleSaveEditedAccount}>Save</button>
-                                    <button
-                                        className="cancel-btn"
-                                        onClick={() => setIsEditing(false)}
-                                    >
-                                        Cancel
-                                    </button>
-                                </>
+                                <button className="save-btn" onClick={handleSaveEditedAccount}>Save</button>
                             ) : (
-                                <>
-                                    <button className="edit-btn" onClick={() => setIsEditing(true)}>Edit</button>
-                                    <button
-                                        className="delete-btn"
-                                        onClick={() => handleDeleteAccount(selectedAccount.id)}
-                                    >
-                                        Delete
-                                    </button>
-                                </>
+                                <button className="edit-btn" onClick={() => setIsEditing(true)}>Edit</button>
                             )}
+                            <button
+                                className="delete-btn"
+                                onClick={() => handleDeleteAccount(selectedAccount.id)}
+                            >
+                                Delete
+                            </button>
+                            <button
+                                className="cancel-btn"
+                                onClick={() => setSelectedAccount(null)}
+                            >
+                                Cancel
+                            </button>
                         </div>
                     </>
                 ) : (
-                    <div className="heading">No Account Selected</div>
+                    <div className="empty-message">Select an account to view details</div>
                 )}
             </div>
         </div>
@@ -356,4 +338,3 @@ const Accounts = () => {
 };
 
 export default Accounts;
-
