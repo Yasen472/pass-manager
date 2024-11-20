@@ -1,12 +1,6 @@
 const express = require("express");
 const { verifyToken } = require("../middleware/authMiddleware.js");
-const { 
-    createAccount, 
-    getAccountsByOwner, 
-    updateAccount, 
-    deleteAccount, 
-    getAccountById 
-} = require("../controllers/accountsController.js");
+const { createAccount, getAccountsByOwner, updateAccount, deleteAccount } = require("../controllers/accountsController.js");
 const admin = require("firebase-admin");  // Using Firebase Admin SDK
 
 // Use the initialized db from server.js

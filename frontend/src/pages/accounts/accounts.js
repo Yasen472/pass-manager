@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import jwtDecode from 'jwt-decode'; // Fix import here
+import jwtDecode from 'jwt-decode';
 import './accounts.css';
-import { CiSearch } from "react-icons/ci";
 import { CgProfile } from "react-icons/cg";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import AccountCard from '../../components/accountCard/accountCard.js';
+import Modal from 'react-modal'; // Import Modal at the top of your file
 
-const API_BASE_URL = 'http://localhost:8080'; // Backend URL
+const API_BASE_URL = 'http://localhost:8080';
+
+Modal.setAppElement('#root');
 
 const Accounts = () => {
     const [userId, setUserId] = useState(null);
@@ -22,8 +24,11 @@ const Accounts = () => {
     const [isAddingAccount, setIsAddingAccount] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [passwordVisible, setPasswordVisible] = useState(false);
+    const [is2FAModalOpen, setIs2FAModalOpen] = useState(false);
+    const [twoFAToken, setTwoFAToken] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
 
-    // Fetch userId from backend
+
     useEffect(() => {
         const fetchUserId = async () => {
             const token = localStorage.getItem('token');
@@ -56,7 +61,6 @@ const Accounts = () => {
         }
     }, []);
 
-    // Fetch accounts from backend
     const fetchAccounts = async () => {
         if (!userId) return;
 
@@ -128,8 +132,6 @@ const Accounts = () => {
 
     const handleSaveEditedAccount = async () => {
         try {
-            debugger;
-            console.log(selectedAccount.id)
             const response = await fetch(`${API_BASE_URL}/api/accounts/update/${selectedAccount.id}`, {
                 method: 'PUT',
                 headers: {
@@ -181,6 +183,31 @@ const Accounts = () => {
         account.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         account.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const handleVerify2FA = async () => {
+        try {
+            debugger;
+            const response = await fetch(`${API_BASE_URL}/auth/verify-2fa`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ token: twoFAToken, userInputTime: Date.now() }),
+            });
+
+            if (response.ok) {
+                setIs2FAModalOpen(false); // Close modal on success
+                setIsEditing(true); // Allow editing after verification
+            } else {
+                setErrorMessage('Invalid 2FA token. Please try again.');
+            }
+        } catch (error) {
+            console.error("Error during 2FA verification:", error);
+            setErrorMessage('An error occurred during 2FA verification.');
+        }
+    };
+
 
     const togglePasswordVisibility = () => {
         setPasswordVisible((prevState) => !prevState);
@@ -277,43 +304,53 @@ const Accounts = () => {
                             <div className="details">
                                 {isEditing ? (
                                     <>
-                                        <input
-                                            type="email"
-                                            name="email"
-                                            value={selectedAccount.email}
-                                            onChange={handleInputChange}
-                                        />
-                                        <input
-                                            type="text"
-                                            name="username"
-                                            value={selectedAccount.username}
-                                            onChange={handleInputChange}
-                                        />
-                                        <div className="password-container">
+                                        <div>
+                                            <strong>Email:</strong>
                                             <input
-                                                type={passwordVisible ? "text" : "password"}
-                                                name="password"
-                                                value={selectedAccount.password}
+                                                type="email"
+                                                name="email"
+                                                value={selectedAccount.email}
                                                 onChange={handleInputChange}
                                             />
-                                            <span className="password-visibility-icon" onClick={togglePasswordVisibility}>
-                                                {passwordVisible ? <FiEyeOff /> : <FiEye />}
-                                            </span>
+                                        </div>
+                                        <div>
+                                            <strong>Username:</strong>
+                                            <input
+                                                type="text"
+                                                name="username"
+                                                value={selectedAccount.username}
+                                                onChange={handleInputChange}
+                                            />
+                                        </div>
+                                        <div>
+                                            <strong>Password:</strong>
+                                            <div className="password-container">
+                                                <input
+                                                    type={passwordVisible ? "text" : "password"}
+                                                    name="password"
+                                                    value={selectedAccount.password}
+                                                    onChange={handleInputChange}
+                                                />
+                                                <span className="password-visibility-icon" onClick={togglePasswordVisibility}>
+                                                    {passwordVisible ? <FiEyeOff /> : <FiEye />}
+                                                </span>
+                                            </div>
                                         </div>
                                     </>
                                 ) : (
                                     <>
-                                        <div>{selectedAccount.email}</div>
-                                        <div>{selectedAccount.username}</div>
+                                        <div><strong>Email:</strong> {selectedAccount.email}</div>
+                                        <div><strong>Username:</strong> {selectedAccount.username}</div>
+                                        <div><strong>Password:</strong> {'*'.repeat(selectedAccount.password.length)}</div>
                                     </>
                                 )}
                             </div>
                         </div>
-                        <div className="form-buttons">
+                        <div className="form-buttons" style={{ width: '100%', justifyContent: 'center' }}>
                             {isEditing ? (
                                 <button className="save-btn" onClick={handleSaveEditedAccount}>Save</button>
                             ) : (
-                                <button className="edit-btn" onClick={() => setIsEditing(true)}>Edit</button>
+                                <button className="edit-btn" onClick={() => setIs2FAModalOpen(true)}>Edit</button>
                             )}
                             <button
                                 className="delete-btn"
@@ -323,7 +360,10 @@ const Accounts = () => {
                             </button>
                             <button
                                 className="cancel-btn"
-                                onClick={() => setSelectedAccount(null)}
+                                onClick={() => {
+                                    setSelectedAccount(null);
+                                    setIsEditing(false);
+                                }}
                             >
                                 Cancel
                             </button>
@@ -333,6 +373,32 @@ const Accounts = () => {
                     <div className="empty-message">Select an account to view details</div>
                 )}
             </div>
+            <Modal
+                isOpen={is2FAModalOpen}
+                onRequestClose={() => setIs2FAModalOpen(false)}
+                contentLabel="2FA Verification"
+                className="modal"
+                overlayClassName="overlay"
+            >
+                <h3>Enter 2FA Token</h3>
+                <p>Please enter the token from your authenticator app to proceed.</p>
+                <input
+                    type="text"
+                    placeholder="Enter 2FA token"
+                    value={twoFAToken}
+                    onChange={(e) => setTwoFAToken(e.target.value)}
+                />
+                <div className="form-buttons">
+                    <button className="save-btn" onClick={handleVerify2FA}>Verify</button>
+                    <button
+                        className="cancel-btn"
+                        onClick={() => setIs2FAModalOpen(false)}
+                    >
+                        Cancel
+                    </button>
+                </div>
+                {errorMessage && <p className="error-message">{errorMessage}</p>}
+            </Modal>
         </div>
     );
 };
