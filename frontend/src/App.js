@@ -11,14 +11,16 @@ import Verify2FA from './components/verification/verify2Fa.js';
 import DetailsCard from './components/detailsCard/detailsCard.js';
 import SecurityQuestionsForm from './components/securityQuestions/securityQuestionsForm.js';
 import PasswordSetup from './pages/passwordSetup/passwordSetup.js';
+import { SecurityProvider } from './context/securityContext.js';
 
 function App() {
   return (
     <AuthProvider>
+      <SecurityProvider>
       <Navbar />
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Home />} />=
+        <Route path="/" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/accounts" element={<Accounts />} />
         <Route path="/profile" element={<Profile />} />
@@ -27,6 +29,7 @@ function App() {
         <Route path="/sec-questions-form" element={<SecurityQuestionsForm />} />
         <Route path="/new-password-setup" element={<PasswordSetup />} />
       </Routes>
+      </SecurityProvider>
     </AuthProvider>
   );
 }

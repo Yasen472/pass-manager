@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import jwtDecode from 'jwt-decode';
 import './accounts.css';
 import { CgProfile } from "react-icons/cg";
 import { FiEye, FiEyeOff } from "react-icons/fi";

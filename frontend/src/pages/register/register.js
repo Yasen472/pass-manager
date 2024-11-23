@@ -1,15 +1,13 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './register.css';
-import { useAuth } from '../../context/authContext.js';
 import TextureImg from '../../assets/images/texture.jpg';
 import { IoIosEye } from "react-icons/io";
 import { FaEyeSlash, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import axios from 'axios'; // Add axios for API calls
 
 const Register = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -26,6 +24,12 @@ const Register = () => {
   const [showReq, setShowReq] = useState(false);
   const [showButton, setShowButton] = useState(false);
   const [showReqMenu, setShowReqMenu] = useState(false);
+
+  const authUrl = process.env.REACT_APP_AUTH_URL; // Backend URL for authentication
+
+  useEffect(() => {
+    sessionStorage.clear(); // Clear sessionStorage on page load
+  }, []);
 
   const handleEmailChange = (e) => setEmail(e.target.value);
   const handleUsernameChange = (e) => setUsername(e.target.value);
@@ -83,6 +87,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validation
     if (!username || !email || !password || !rePassword) {
       setErrorMessage('Please fill in all fields.');
       return;
@@ -99,34 +104,42 @@ const Register = () => {
     const userData = { email, password, username };
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_AUTH_URL}/register`, userData);
+      // 1. Register the user and get the JWT token
+      const registerResponse = await axios.post(`${authUrl}/register`, userData);
 
-      if (response.status === 201) {
-        const { userId, token } = response.data;
+      if (registerResponse.status === 201) {
+        const { userId, token } = registerResponse.data;
 
-        console.log(`Auth token from the frontend is ${token}`)
+        // Save userId and token in sessionStorage for later use
+        sessionStorage.setItem('userId', userId);
+        sessionStorage.setItem('token', token);
 
-        // Now that the user is registered, let's initiate 2FA setup
+        console.log(`Auth token from the frontend is ${token}`);
+
+        // 2. Enable 2FA for the registered user
         const enable2faResponse = await axios.post(
-          `${process.env.REACT_APP_AUTH_URL}/enable-2fa`,
-          {},  // Empty body
-          { headers: { Authorization: `Bearer ${token}` } }
+          `${authUrl}/enable-2fa`,
+          {}, // Empty body
+          { headers: { Authorization: `Bearer ${token}` } } // Send the JWT token
         );
 
         if (enable2faResponse.status === 200) {
-          // Receive the 2FA setup QR code URL
           const qrCodeUrl = enable2faResponse.data.qrCodeUrl;
-          console.log(`QR Code in the frontend is ${qrCodeUrl}`)
-          navigate('/verify-2fa', { state: { qrCodeUrl, userId, token } });
-        } else {
-          setErrorMessage('Failed to enable 2FA. Please try again.');
+          console.log(`QR Code in the frontend is ${qrCodeUrl}`);
+
+          // Save the QR code URL in sessionStorage (or state if you plan to display it later)
+          sessionStorage.setItem('qrCodeUrl', qrCodeUrl);
+
+          // Navigate to the security questions form (or QR Code display page)
+          navigate('/sec-questions-form');
         }
       }
     } catch (error) {
       setErrorMessage('An error occurred during registration or 2FA setup. Please try again.');
-      console.error("Error during 2FA setup:", error);
+      console.error('Error during registration or 2FA setup:', error);
     }
   };
+
 
   return (
     <div className="register-page">
@@ -155,23 +168,19 @@ const Register = () => {
               )}
             </div>
 
-            {showReq ? (
+            {showReq && (
               <div
                 className="requirements-container"
                 onMouseEnter={() => setShowReqMenu(true)}
                 onMouseLeave={() => setShowReqMenu(false)}
               >
                 {readyPassword ? (
-                  <>
-                    <div>Meets requirements </div><FaCheckCircle color="green" />
-                  </>
+                  <div>Meets requirements <FaCheckCircle color="green" /></div>
                 ) : (
-                  <>
-                    <div>Meets requirements</div><FaTimesCircle className="x-requirements-icon" color="red" />
-                  </>
+                  <div>Meets requirements <FaTimesCircle className="x-requirements-icon" color="red" /></div>
                 )}
               </div>
-            ) : null}
+            )}
 
             {showReqMenu && (
               <div className="dropdown-requirements">

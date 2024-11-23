@@ -33,12 +33,12 @@ const validatePassword = (password) => {
     return true;
 };
 
-// 2FA Setup: Generate a secret for Google Authenticator
+
 const registerUser = (db) => async (req, res) => {
     try {
         const { email, password, username } = req.body;
 
-        // Password validation
+        // Validate password
         const passwordValidation = validatePassword(password);
         if (passwordValidation !== true) {
             return res.status(400).json({ message: passwordValidation });
@@ -59,20 +59,21 @@ const registerUser = (db) => async (req, res) => {
             return res.status(409).json({ message: "Username already taken" });
         }
 
-        // Hash the password and save user to Firestore
+        // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Save user to Firestore
         const user = await db.collection("users").add({
             email,
             username,
             password: hashedPassword,
             isVerified: false,
+            securityInfo: [], // Placeholder for security info
         });
 
         // Generate JWT for authentication after registration
         const payload = { userId: user.id, email, username };
-        const authToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-        console.log(`Auth token from the backend is ${authToken}`);
+        const authToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
 
         res.status(201).json({
             message: "User registered successfully",
@@ -81,10 +82,187 @@ const registerUser = (db) => async (req, res) => {
         });
     } catch (error) {
         console.error("Error during registration:", error);
-        res.status(500).json({ message: "An error occurred during registration" });
+        res.status(500).json({ message: "An error occurred during registration." });
     }
 };
 
+const checkSecurityInfo = (db) => async (req, res) => {
+    try {
+        const { userId, providedSecurityInfo } = req.body;
+
+        // Validate input
+        if (!userId || !providedSecurityInfo) {
+            return res.status(400).json({
+                message: "User ID and provided security info are required.",
+            });
+        }
+
+        // Retrieve the user's stored security info
+        const userDoc = await db.collection("users").doc(userId).get();
+        if (!userDoc.exists) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        const user = userDoc.data();
+        const storedSecurityInfo = user.securityInfo;
+
+        // Ensure both `storedSecurityInfo` and `providedSecurityInfo` are arrays
+        if (!Array.isArray(storedSecurityInfo) || !Array.isArray(providedSecurityInfo)) {
+            return res.status(400).json({
+                message: "Invalid security info format.",
+            });
+        }
+
+        // Compare the stored and provided security info
+        if (storedSecurityInfo.length !== providedSecurityInfo.length) {
+            return res.status(400).json({ message: "Security info does not match." });
+        }
+
+        for (let i = 0; i < storedSecurityInfo.length; i++) {
+            const stored = storedSecurityInfo[i];
+            const provided = providedSecurityInfo[i];
+
+            if (
+                stored.question !== provided.question ||
+                stored.answer !== provided.answer
+            ) {
+                return res.status(400).json({
+                    message: `Security info mismatch at index ${i}.`,
+                });
+            }
+        }
+
+        // If all checks pass
+        res.status(200).json({ message: "Security info verified successfully." });
+    } catch (error) {
+        console.error("Error checking security info:", error);
+        res.status(500).json({
+            message: "An error occurred while verifying security info.",
+        });
+    }
+};
+
+
+const updateSecurityInfo = (db) => async (req, res) => {
+    try {
+        const { userId, securityInfo } = req.body;
+
+        // Validate userId
+        if (!userId) {
+            return res.status(400).json({
+                message: 'User ID is required.',
+            });
+        }
+
+        // Validate `securityInfo`: Must contain exactly 3 question-answer pairs
+        if (!Array.isArray(securityInfo) || securityInfo.length !== 3) {
+            return res.status(400).json({
+                message: "Security info must contain exactly 3 question-answer pairs.",
+            });
+        }
+
+        // Validate each question-answer pair
+        for (let i = 0; i < securityInfo.length; i++) {
+            const { question, answer } = securityInfo[i];
+            if (!question || !answer) {
+                return res.status(400).json({
+                    message: `Security question and answer at index ${i} must be provided.`,
+                });
+            }
+        }
+
+        // Retrieve user document using the actual userId
+        const userDocRef = db.collection("users").doc(userId);
+
+        // Check if the user exists in Firestore
+        const userDoc = await userDocRef.get();
+        if (!userDoc.exists) {
+            return res.status(404).json({
+                message: 'User not found.',
+            });
+        }
+
+        // Update the security info for the user
+        await userDocRef.update({
+            securityInfo
+        });
+
+        res.status(200).json({
+            message: 'Security info updated successfully.',
+        });
+    } catch (error) {
+        console.error('Error during security info update:', error);
+        res.status(500).json({
+            message: 'An error occurred while updating security information. Please try again later.',
+        });
+    }
+};
+
+// const setupTwoFA = (db) => async (req, res) => {
+//     try {
+//         const userId = req.user ? req.user.id : null;
+
+//         if (!userId) {
+//             return res.status(400).json({ message: "Invalid userId" });
+//         }
+
+//         const userDoc = await db.collection("users").doc(userId).get();
+
+//         if (!userDoc.exists) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+
+//         const user = userDoc.data();
+//         console.log("Retrieved user document:", user); // Debug log
+//         console.log("User's current 2FA secret:", user.twofaSecret); // Debug log
+
+
+//         // If 2FA is already set up, generate the QR code with the existing secret
+//         if (user.twofaSecret) {
+//             const otpauthUrl = speakeasy.otpauthURL({
+//                 secret: user.twofaSecret,
+//                 encoding: 'ascii',
+//                 label: `MyApp:${user.username}`,
+//                 issuer: "MyApp"
+//             });
+
+//             const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
+//             console.log(`QR code from the backend: ${otpauthUrl}`);
+
+//             return res.status(200).json({
+//                 message: "2FA is already set up",
+//                 qrCodeUrl
+//             });
+//         }
+
+//         // Generate a new 2FA secret if not already set up
+//         const secret = speakeasy.generateSecret({ length: 20 });
+
+//         // Save the new 2FA secret in Firestore
+//         await db.collection("users").doc(userId).update({
+//             twofaSecret: secret.base32
+//         });
+
+//         const otpauthUrl = speakeasy.otpauthURL({
+//             secret: secret.base32,
+//             label: `MyApp:${user.username}`,
+//             issuer: "MyApp"
+//         });
+
+//         const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
+
+//         // Return the QR code URL and secret to the client for later use
+//         res.status(200).json({
+//             message: "2FA setup successful",
+//             qrCodeUrl,
+//             secret: secret.base32  // Optional: Send the secret to the client for later use
+//         });
+
+//     } catch (error) {
+//         console.error("Error during 2FA setup:", error);
+//         res.status(500).json({ message: "An error occurred during 2FA setup" });
+//     }
+// };
 
 const setupTwoFA = (db) => async (req, res) => {
     try {
@@ -98,7 +276,9 @@ const setupTwoFA = (db) => async (req, res) => {
         }
 
         const user = userDoc.data();
-        console.log(user.twofaSecret)
+       
+        // console.log(`User has twoFaSecret already ${user.twofaSecret}`)
+        // console.log(user.twofaSecret)
 
         // If 2FA is already set up, generate the QR code with the existing secret
         if (user.twofaSecret) {
@@ -120,6 +300,7 @@ const setupTwoFA = (db) => async (req, res) => {
 
         // Generate new 2FA secret if not set up
         const secret = speakeasy.generateSecret({ length: 20 });
+        
 
         // Save the new 2FA secret in Firestore
         await db.collection("users").doc(userId).update({
@@ -132,7 +313,13 @@ const setupTwoFA = (db) => async (req, res) => {
             issuer: "MyApp"
         });
 
+        // console.log(`Generated new twoFaSecret ${twofaSecret}`)
+
         const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
+
+        console.log(user)
+
+        // console.log(`Generated new qrCodeUrl ${qrCodeUrl}`)
 
         res.status(200).json({
             message: "2FA setup successful",
@@ -148,7 +335,7 @@ const setupTwoFA = (db) => async (req, res) => {
 
 const verify2FA = (db) => async (req, res) => {
     try {
-        const { token, userInputTime } = req.body;
+        const { token } = req.body;
         const userId = req.user.id;  // Get userId from the middleware
 
         // Fetch the user document
@@ -185,7 +372,7 @@ const verify2FA = (db) => async (req, res) => {
 
 const loginUser = (db) => async (req, res) => {
     try {
-        const { email, password, twoFACode } = req.body; // Renamed token to twoFAToken
+        const { email, password, twoFACode } = req.body;
 
         // Find user by email
         const usersRef = db.collection("users");
@@ -193,7 +380,7 @@ const loginUser = (db) => async (req, res) => {
         const userSnapshot = await userQuery.get();
 
         if (userSnapshot.empty) {
-            return res.status(401).json({ message: "Invalid email or password" });
+            return res.status(401).json({ message: "Invalid email or password." });
         }
 
         let user;
@@ -201,60 +388,76 @@ const loginUser = (db) => async (req, res) => {
             user = { _id: doc.id, ...doc.data() };
         });
 
-        // Check if the user is verified (2FA setup)
-        if (!user.isVerified) {
-            return res.status(403).json({ message: "User is not verified. Please complete the 2FA verification." });
+        // Ensure `securityInfo` is set
+        if (!user.securityInfo || user.securityInfo.length === 0) {
+            return res.status(403).json({ message: "Please set up security questions before logging in." });
         }
 
-        // Compare provided password with stored hashed password
+        // Compare password
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch) {
-            return res.status(401).json({ message: "Invalid email or password" });
+            return res.status(401).json({ message: "Invalid email or password." });
         }
 
+        // 2FA validation (if enabled)
         if (user.twofaSecret) {
-            // Generate token on the server using the stored secret
-            const generatedToken = speakeasy.totp({
-                secret: user.twofaSecret,
-                encoding: 'ascii',
-                window: 3 // Allow 1 window before and after the expected time
-            });
-
-            // Log both the generated token (from the server) and the user's token input
-            console.log("Generated Token (Server):", generatedToken);
-            console.log("User-Provided Token:", twoFACode);
-
-            // Verify the token entered by the user
             const isVerified = speakeasy.totp.verify({
                 secret: user.twofaSecret,
-                encoding: 'ascii',
-                token: twoFACode,  // The token entered by the user
-                window: 1 // Allow 1 window before and after the expected time
+                encoding: "ascii",
+                token: twoFACode,
+                window: 1,
             });
 
             if (!isVerified) {
-                return res.status(400).json({ message: "Invalid 2FA token" });
+                return res.status(400).json({ message: "Invalid 2FA token." });
             }
         }
 
-        // Generate JWT with user ID, email, and username (renamed the variable to authToken)
+        // Generate JWT
         const authToken = jwt.sign(
             { id: user._id, email: user.email, username: user.username },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: "1h" }
         );
 
         res.status(200).json({ message: "Login successful", token: authToken, username: user.username });
     } catch (error) {
         console.error("Error during login:", error);
-        res.status(500).json({ message: "An error occurred during login" });
+        res.status(500).json({ message: "An error occurred during login." });
     }
 };
 
+
 // Update user
+// const updateUser = (db) => async (req, res) => {
+//     try {
+//         const { email, password, username } = req.body;
+//         const userId = req.params.id;
+
+//         const userDoc = await db.collection("users").doc(userId).get();
+//         if (!userDoc.exists) {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+
+//         const firestoreUpdates = {};
+//         if (email) firestoreUpdates.email = email;
+//         if (username) firestoreUpdates.username = username;
+
+//         if (Object.keys(firestoreUpdates).length > 0) {
+//             await db.collection("users").doc(userId).update(firestoreUpdates);
+//         }
+
+//         res.status(200).json({ message: "User updated successfully" });
+//     } catch (error) {
+//         console.error("Error during user update:", error);
+//         res.status(500).json({ message: "An error occurred during the user update" });
+//     }
+// };
+
+
 const updateUser = (db) => async (req, res) => {
     try {
-        const { email, password, username } = req.body;
+        const { email, password, username } = req.body; // Include password in the destructuring
         const userId = req.params.id;
 
         const userDoc = await db.collection("users").doc(userId).get();
@@ -265,6 +468,12 @@ const updateUser = (db) => async (req, res) => {
         const firestoreUpdates = {};
         if (email) firestoreUpdates.email = email;
         if (username) firestoreUpdates.username = username;
+
+        if (password) {
+            // Hash the password before storing it
+            const hashedPassword = await bcrypt.hash(password, 10);
+            firestoreUpdates.password = hashedPassword;
+        }
 
         if (Object.keys(firestoreUpdates).length > 0) {
             await db.collection("users").doc(userId).update(firestoreUpdates);
@@ -280,7 +489,7 @@ const updateUser = (db) => async (req, res) => {
 // Delete user
 const deleteUser = (db) => async (req, res) => {
     try {
-        const userId = req.params.id;   
+        const userId = req.params.id;
 
         await db.collection("users").doc(userId).delete();
 
@@ -293,6 +502,8 @@ const deleteUser = (db) => async (req, res) => {
 
 module.exports = {
     registerUser,
+    updateSecurityInfo,
+    checkSecurityInfo,
     setupTwoFA,
     verify2FA,
     loginUser,

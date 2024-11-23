@@ -1,3 +1,130 @@
+// import React, { useState } from 'react';
+// import axios from 'axios';
+// import './login.css';
+// import { useNavigate, Link } from 'react-router-dom';
+// import { useAuth } from '../../context/authContext.js';
+// import { IoIosEye } from "react-icons/io"; // Opened eye icon
+// import { FaEyeSlash } from "react-icons/fa"; // Closed eye icon
+// import TextureImg from '../../assets/images/texture.jpg';
+
+// const Login = () => {
+//     const navigate = useNavigate();
+//     const { login } = useAuth();
+
+//     const [email, setEmail] = useState('');
+//     const [password, setPassword] = useState('');
+//     const [twoFACode, setTwoFACode] = useState('');  // New state for 2FA code
+//     const [errorMessage, setErrorMessage] = useState('');
+//     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+//     const [isResetting, setIsResetting] = useState(false); // State to track password reset
+
+//     const handleEmailChange = (e) => setEmail(e.target.value);
+//     const handlePasswordChange = (e) => setPassword(e.target.value);
+//     const handleTwoFACodeChange = (e) => setTwoFACode(e.target.value); // Handler for 2FA code input
+
+//     const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible);
+
+//     const handleSubmit = async (e) => {
+//         e.preventDefault();
+//         setErrorMessage('');  // Clear any previous errors
+    
+//         if (!email || !password || !twoFACode) {  // Check if all fields are filled
+//             setErrorMessage('Please fill in all fields, including the 2FA code.');
+//             return;
+//         }
+    
+//         try {
+//             const response = await axios.post(`${process.env.REACT_APP_AUTH_URL}/login`, { 
+//                 email, 
+//                 password, 
+//                 twoFACode // Include 2FA code in the login request
+//             });
+    
+//             if (response.status === 200) {
+//                 const { _id: userId, username, token } = response.data; // Assuming token is returned here
+//                 console.log('Login successful:', response.data);
+    
+//                 // Store user details and token, then navigate to home
+//                 login(userId, username, email, password, token); // Pass token here
+//                 setEmail('');
+//                 setPassword('');
+//                 setTwoFACode('');  // Clear 2FA code field after successful login
+//                 navigate('/accounts');
+//             }
+//         } catch (error) {
+//             console.error('Error during login:', error);
+//             const message = error.response?.data?.message || 'Login failed. Please check your credentials and 2FA code.';
+//             setErrorMessage(message);
+//         }
+//     };
+
+//     const handleForgotPassword = () => {
+//         setIsResetting(true);
+//         navigate('/sec-questions-form', { state: { isResetting: true } });
+//     };
+
+//     return (
+//         <div className="login-page">
+//             <div className="login-image-container">
+//                 <img src={TextureImg} className="login-image" alt="login background" />
+//                 <div className="login-image-text">Welcome Back!</div>
+//             </div>
+//             <div className="login-container">
+//                 <h3 className="login-header">Login</h3>
+//                 {errorMessage && <p className="error-message">{errorMessage}</p>}
+//                 <form className="login-form" onSubmit={handleSubmit}>
+//                     <label htmlFor="email">Email</label>
+//                     <input
+//                         type="email"
+//                         id="email"
+//                         value={email}
+//                         onChange={handleEmailChange}
+//                         required
+//                     />
+//                     <label htmlFor="password">Password</label>
+//                     <div className="password-container">
+//                         <input
+//                             type={isPasswordVisible ? "text" : "password"}
+//                             id="password"
+//                             value={password}
+//                             onChange={handlePasswordChange}
+//                             required
+//                         />
+//                         {isPasswordVisible ? (
+//                             <FaEyeSlash className="visibility-icon" size={25} onClick={togglePasswordVisibility} />
+//                         ) : (
+//                             <IoIosEye className="visibility-icon" size={25} onClick={togglePasswordVisibility} />
+//                         )}
+//                     </div>
+//                     <div className="forgot-password">
+//                         <span 
+//                             className="forgot-password-text" 
+//                             onClick={handleForgotPassword}
+//                         >
+//                             Forgotten Password?
+//                         </span>
+//                     </div>
+
+//                     {/* New field for 2FA code */}
+//                     <label htmlFor="twoFACode">2FA Code</label>
+//                     <input
+//                         type="text"
+//                         id="twoFACode"
+//                         value={twoFACode}
+//                         onChange={handleTwoFACodeChange}
+//                         required
+//                     />
+
+//                     <button type="submit" className="login-btn">Login</button>
+//                 </form>
+//                 <p className="sign-up-message">New User? <Link to="/register">Sign-up</Link></p>
+//             </div>
+//         </div>
+//     );
+// };
+
+// export default Login;
+
 import React, { useState } from 'react';
 import axios from 'axios';
 import './login.css';
@@ -16,6 +143,8 @@ const Login = () => {
     const [twoFACode, setTwoFACode] = useState('');  // New state for 2FA code
     const [errorMessage, setErrorMessage] = useState('');
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const [isResetting, setIsResetting] = useState(false); // State to track password reset
+    const [showEmailPrompt, setShowEmailPrompt] = useState(false); // State for showing email prompt
 
     const handleEmailChange = (e) => setEmail(e.target.value);
     const handlePasswordChange = (e) => setPassword(e.target.value);
@@ -56,7 +185,20 @@ const Login = () => {
             setErrorMessage(message);
         }
     };
-    
+
+    const handleForgotPassword = () => {
+        if (!email) {
+            // Show the overlay message asking for email
+            setShowEmailPrompt(true);
+            return;
+        }
+        setIsResetting(true);
+        navigate('/sec-questions-form', { state: { email, isResetting: true } });
+    };
+
+    const closeEmailPrompt = () => {
+        setShowEmailPrompt(false); // Close the email prompt when user clicks to close
+    };
 
     return (
         <div className="login-page">
@@ -91,6 +233,14 @@ const Login = () => {
                             <IoIosEye className="visibility-icon" size={25} onClick={togglePasswordVisibility} />
                         )}
                     </div>
+                    <div className="forgot-password">
+                        <span 
+                            className="forgot-password-text" 
+                            onClick={handleForgotPassword}
+                        >
+                            Forgotten Password?
+                        </span>
+                    </div>
 
                     {/* New field for 2FA code */}
                     <label htmlFor="twoFACode">2FA Code</label>
@@ -106,8 +256,19 @@ const Login = () => {
                 </form>
                 <p className="sign-up-message">New User? <Link to="/register">Sign-up</Link></p>
             </div>
+
+            {/* Email prompt overlay */}
+            {showEmailPrompt && (
+                <div className="email-prompt-overlay">
+                    <div className="email-prompt-message">
+                        <p>Please enter your email before proceeding to reset your password.</p>
+                        <button onClick={closeEmailPrompt} className="close-btn">Close</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 export default Login;
+

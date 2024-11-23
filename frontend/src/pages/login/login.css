@@ -121,6 +121,73 @@ input:focus {
     color: #0077ff;
 }
 
+
+
+/* Overlay Style for Email Prompt */
+.email-prompt-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure it's above the login form */
+}
+
+.email-prompt-message {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    width: 300px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.email-prompt-message p {
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.close-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Make sure the other login content is properly layered */
+.login-page {
+    position: relative;
+}
+
+/* Optional: Add some styling for the 'Forgotten Password?' link */
+.forgot-password {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.forgot-password-text {
+    color: #007bff;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.forgot-password-text:hover {
+    text-decoration: underline;
+}
+
+
+
+
 @media (max-width: 768px) {
     .login-container {
         padding: 1.5rem;

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import './passwordSetup.css';
+import axios from 'axios';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const validatePassword = (password) => {
   const minLength = 8;
@@ -7,7 +9,7 @@ const validatePassword = (password) => {
   const hasLowerCase = /[a-z]/;
   const hasNumber = /[0-9]/;
   const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/;
-   
+
   if (password.length < minLength) {
     return `Password should be at least ${minLength} characters long.`;
   }
@@ -23,7 +25,7 @@ const validatePassword = (password) => {
   if (!hasSymbol.test(password)) {
     return "Password should include at least one symbol.";
   }
-   
+
   return true;
 };
 
@@ -34,10 +36,15 @@ const PasswordSetup = () => {
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const navigate = useNavigate();
+  const location = useLocation();
+  const userId = location.state?.userId; // Retrieve userId from location state
+  const authUrl = process.env.REACT_APP_AUTH_URL; // Backend URL
+
   const handlePasswordChange = (e) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
-    
+
     const validationResult = validatePassword(newPassword);
     if (validationResult === true) {
       setPasswordError('');
@@ -49,7 +56,7 @@ const PasswordSetup = () => {
   const handleConfirmPasswordChange = (e) => {
     const newConfirmPassword = e.target.value;
     setConfirmPassword(newConfirmPassword);
-    
+
     if (newConfirmPassword !== password) {
       setConfirmPasswordError('Passwords do not match.');
     } else {
@@ -57,15 +64,27 @@ const PasswordSetup = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const validationResult = validatePassword(password);
-    
+
     if (validationResult === true) {
       if (password === confirmPassword) {
-        console.log('Password set successfully');
-        alert('Password set successfully!');
+        try {
+          // Send POST request to update password
+          const response = await axios.post(`${authUrl}/update/${userId}`, {
+            password,
+          });
+
+          if (response.status === 200) {
+            alert('Password set successfully!');
+            navigate('/login'); // Redirect to login page or other relevant page
+          }
+        } catch (error) {
+          console.error('Error updating password:', error);
+          setPasswordError('An error occurred while setting your password. Please try again.');
+        }
       } else {
         setConfirmPasswordError('Passwords do not match.');
       }
@@ -78,11 +97,11 @@ const PasswordSetup = () => {
     <div className="password-setup-container">
       <form onSubmit={handleSubmit} className="password-setup-form">
         <h2>Create New Password</h2>
-        
+
         <div className="password-input-group">
           <label htmlFor="new-password">New Password</label>
           <div className="password-input-wrapper">
-            <input 
+            <input
               type={showPassword ? 'text' : 'password'}
               id="new-password"
               value={password}
@@ -90,22 +109,20 @@ const PasswordSetup = () => {
               placeholder="Enter new password"
               required
             />
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="toggle-password"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? '👁️' : '👁️‍🗨️'}
             </button>
           </div>
-          {passwordError && (
-            <div className="error-message">{passwordError}</div>
-          )}
+          {passwordError && <div className="error-message">{passwordError}</div>}
         </div>
 
         <div className="password-input-group">
           <label htmlFor="confirm-password">Confirm Password</label>
-          <input 
+          <input
             type={showPassword ? 'text' : 'password'}
             id="confirm-password"
             value={confirmPassword}
@@ -113,9 +130,7 @@ const PasswordSetup = () => {
             placeholder="Confirm new password"
             required
           />
-          {confirmPasswordError && (
-            <div className="error-message">{confirmPasswordError}</div>
-          )}
+          {confirmPasswordError && <div className="error-message">{confirmPasswordError}</div>}
         </div>
 
         <div className="password-requirements">

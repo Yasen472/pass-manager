@@ -14,20 +14,20 @@ const Verify2FA = () => {
   const handleTokenChange = (e) => {
     setTwofaToken(e.target.value);
   };
-
+ 
   const handleVerify2FA = async () => {
+    debugger;
     console.log("Starting 2FA verification...");
     console.log("User ID: ", userId);
     console.log("Entered Token: ", twofaToken);
     console.log("Auth Token: ", authToken); // Log the authorization token being sent in the request
 
     try {
-      const userInputTime = Date.now();
-      console.log(userInputTime);
 
+      
       const response = await axios.post(
         `${process.env.REACT_APP_AUTH_URL}/verify-2fa`,
-        { userId, token: twofaToken, userInputTime }, // Send userId and 2FA token
+        { userId, token: twofaToken }, // Send userId and 2FA token
         { headers: { Authorization: `Bearer ${authToken}` } } // Auth token if required
       );
 

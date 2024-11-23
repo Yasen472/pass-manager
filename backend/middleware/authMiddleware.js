@@ -12,14 +12,17 @@ const verifyToken = (req, res, next) => {
         if (err) {
             return res.status(401).json({ message: "Invalid token" });
         }
+
+        if (!decoded.userId) {
+            console.error("Decoded token is missing the 'userId' field:", decoded);
+            return res.status(400).json({ message: "Token payload invalid" });
+        }
         
-        // Attach user information (like userId) to the request object
-        req.user = { id: decoded.id };  // Assuming you store the userId in the payload
-        console.log(decoded.id)
-        console.log(`verifyToken is being executed properly - verifyToken function`)
+        // Attach userId to the request object
+        req.user = { id: decoded.userId };
+        console.log(`verifyToken is being executed properly - Decoded userId: ${req.user.id}`);
         next();
     });
 };
-
 
 module.exports = { verifyToken };

@@ -57,3 +57,17 @@
   .submit-button:hover {
     background-color: #45a049;
   }
+
+  .forgot-password {
+    margin-top: 5px;
+}
+
+.forgot-password-text {
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.forgot-password-text:hover {
+    color: #0056b3;
+}
