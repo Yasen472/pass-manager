@@ -6,6 +6,7 @@ import axios from 'axios';
 const SecurityQuestionsForm = () => {
   const [selectedQuestions, setSelectedQuestions] = useState(['', '', '']);
   const [answers, setAnswers] = useState(['', '', '']);
+  const [correctAnswers, setCorrectAnswers] = useState([]); // To store correct answers from backend
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
@@ -13,6 +14,7 @@ const SecurityQuestionsForm = () => {
   const authUrl = process.env.REACT_APP_AUTH_URL; // Backend URL for authentication
   const isResetting = location.state?.isResetting || false;
 
+  // Question options for selection
   const questionOptions = [
     'What is the name of your first pet?',
     'What is the name of the street you grew up on?',
@@ -26,6 +28,41 @@ const SecurityQuestionsForm = () => {
     'What is the name of your favorite childhood book or movie?'
   ];
 
+  // Fetch saved questions and answers if resetting
+  useEffect(() => {
+    const userId = sessionStorage.getItem("userId");
+
+    const fetchUserInfo = async (userId) => {
+      try {
+          const response = await axios.get(`${authUrl}/user/${userId}?isResetting=true`);
+          const { securityInfo } = response.data;
+   
+          // Ensure that securityInfo contains data
+          if (securityInfo?.questions?.length > 0 && securityInfo?.answers?.length > 0) {
+              setSelectedQuestions(securityInfo.questions);
+              setCorrectAnswers(securityInfo.answers);
+              console.log(securityInfo.answers)
+          } else {
+              console.error("No questions or answers found.");
+              setErrorMessage("No security questions found for this user.");
+          }
+      } catch (error) {
+          console.error('Error fetching user info:', error.message);
+          setErrorMessage('Failed to load security questions. Please try again.');
+      }
+   };
+   
+
+    if (isResetting) {
+      if (userId) {
+        fetchUserInfo(userId);
+      } else {
+        setErrorMessage('User ID is missing. Please log in.');
+      }
+    }
+  }, [isResetting, authUrl]);
+
+  // Handle changes for selected questions and answers
   const handleQuestionChange = (index, value) => {
     const newSelectedQuestions = [...selectedQuestions];
     newSelectedQuestions[index] = value;
@@ -47,6 +84,9 @@ const SecurityQuestionsForm = () => {
       return;
     }
 
+    console.log('Submitting form with selectedQuestions:', selectedQuestions);
+    console.log('Submitting form with answers:', answers);
+
     // Format the security info as required
     const providedSecurityInfo = selectedQuestions.map((question, index) => ({
       question,
@@ -63,56 +103,81 @@ const SecurityQuestionsForm = () => {
   };
 
   const verifySecurityInfo = async (providedSecurityInfo) => {
-    const userId = sessionStorage.getItem('userId'); // Assuming userId is stored in sessionStorage
-    if (!userId) {
-      setErrorMessage('User ID is not available. Please log in.');
+    const userId = sessionStorage.getItem('userId');
+    const token = sessionStorage.getItem('token');
+    if (!userId || !token) {
+      setErrorMessage('User ID or token is not available. Please log in.');
       return;
     }
 
-    try {
-      const response = await axios.post(`${authUrl}/verify-security-info`, {
-        userId,
-        providedSecurityInfo,
-      });
+    console.log('Verifying security information...');
+    console.log('Provided security info:', providedSecurityInfo);
 
-      if (response.status === 200) {
-        // Navigate to new-password-setup on success
-        navigate('/new-password-setup', { state: { userId } });
-      }
-    } catch (error) {
-      const message = error.response?.data?.message || 'Failed to verify security questions.';
-      setErrorMessage(message);
+    // Compare provided answers with correct answers
+    const allAnswersCorrect = providedSecurityInfo.every((info, index) =>
+      info.answer.trim().toLowerCase() === correctAnswers[index]?.trim().toLowerCase()
+    );
+
+    if (!allAnswersCorrect) {
+      setErrorMessage('One or more answers are incorrect.');
+      return;
     }
+
+    console.log('Security questions verified successfully!');
+    // Navigate to new-password-setup on success
+    navigate('/new-password-setup', { state: { userId } });
   };
 
   const saveSecurityInfo = async (securityInfo) => {
     const token = sessionStorage.getItem('token'); // Token for authentication
     const userId = sessionStorage.getItem('userId'); // Assuming userId is stored in sessionStorage
-
+    const qrCodeUrl = sessionStorage.getItem("qrCodeUrl");
+  
     if (!token || !userId) {
       setErrorMessage('You are not authenticated. Please log in.');
       return;
     }
-
+  
+    if (!qrCodeUrl) {
+      setErrorMessage('QR code URL is missing. Please try again.');
+      return;
+    }
+  
+    console.log('Saving security info for userId:', userId);
+    console.log('Security info being saved:', securityInfo);
+  
     try {
-      const response = await axios.post(
-        `${authUrl}/update-security-info`,
-        { userId, securityInfo },
+      // Make the PUT request to update security info
+      
+      const response = await axios.put(
+        
+        `${authUrl}/update-security-info/${userId}`, // Pass userId as URL parameter
+        { securityInfo },
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Ensure token is included in the headers
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
+        
         }
-      );
 
+      );
+  
       if (response.status === 200) {
-        navigate('/verify-2fa', { state: { userId, token } });
+        console.log('Security info updated successfully!');
+        navigate('/verify-2fa', { state: { userId, token, qrCodeUrl } });
+      } else {
+        console.log(response)
       }
     } catch (error) {
+      // Handle any errors during the request
       const message = error.response?.data?.message || 'Failed to save security questions.';
+      console.error('Error saving security info:', error.message);
       setErrorMessage(message);
     }
   };
+  
+
 
   return (
     <div className="security-questions-container">
@@ -122,10 +187,12 @@ const SecurityQuestionsForm = () => {
         {[0, 1, 2].map((index) => (
           <div key={index} className="question-group">
             <label>
-              {isResetting ? `Security Question ${index + 1}:` : `Choose Security Question ${index + 1}:`}
+              {`Security Question ${index + 1}:`}
               {isResetting ? (
+                // Display question text as static when resetting
                 <span className="selected-question">{selectedQuestions[index]}</span>
               ) : (
+                // Dropdown for question selection when setting up
                 <select
                   value={selectedQuestions[index]}
                   onChange={(e) => handleQuestionChange(index, e.target.value)}

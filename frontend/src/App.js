@@ -19,8 +19,8 @@ function App() {
       <SecurityProvider>
       <Navbar />
       <Routes>
+        <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/accounts" element={<Accounts />} />
         <Route path="/profile" element={<Profile />} />

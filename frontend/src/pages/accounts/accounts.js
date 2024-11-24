@@ -364,7 +364,7 @@ const Accounts = () => {
                                     setIsEditing(false);
                                 }}
                             >
-                                Cancel
+                                Close
                             </button>
                         </div>
                     </>

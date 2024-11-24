@@ -1,41 +1,132 @@
+
 import React, { useState, useEffect } from 'react';
-import { FiEye, FiEyeOff, FiEdit2, FiX, FiCheck } from 'react-icons/fi';
+import { FiEdit2, FiX, FiCheck } from 'react-icons/fi';
 import './profile.css';
-import { useAuth } from '../../context/authContext.js';
+import { useNavigate, useLocation } from 'react-router-dom'; // Add React Router navigation
 
 const Profile = () => {
+    const navigate = useNavigate(); // For page redirection
+    const userId = localStorage.getItem("userId"); // Assuming token is available for authentication
+    const token = localStorage.getItem("token");
 
-    const { userId, isLoggedIn, username, email } = useAuth();
+    const location = useLocation();
+    const isResetting = location.state?.isResetting || false;
 
     const [userInfo, setUserInfo] = useState({
-        username: 'JohnDoe123',
-        email: 'john.doe@example.com',
-        password: 'currentpassword123'
+        username: '',
+        email: '',
     });
-
     const [isEditing, setIsEditing] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
     const [tempInfo, setTempInfo] = useState({ ...userInfo });
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        debugger;
+        if (userId) {
+            fetchUserInfo();
+        }
+    }, [userId]);
+
+    useEffect(() => {
+        debugger;
+        if (!isEditing) {
+            setTempInfo(userInfo); // Sync tempInfo with userInfo after editing
+        }
+    }, [userInfo, isEditing]);
+
+    const fetchUserInfo = async () => {
+        debugger;
+        try {
+            setLoading(true);
+            const response = await fetch(`${process.env.REACT_APP_AUTH_URL}/user/${userId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch user data.');
+            }
+
+            const data = await response.json();
+
+            // Populate user info with only the fields returned by the backend
+            const updatedInfo = {
+                username: data.username || '',
+                email: data.email || '',
+            };
+
+            setUserInfo(updatedInfo);
+            setTempInfo(updatedInfo);
+            setLoading(false);
+        } catch (err) {
+            setError(err.message);
+            setLoading(false);
+        }
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setTempInfo(prev => ({
+        setTempInfo((prev) => ({
             ...prev,
-            [name]: value
+            [name]: value,
         }));
     };
 
-    const handleSave = () => {
-        setUserInfo(tempInfo);
-        setIsEditing(false);
-        setShowPassword(false); // Reset password visibility to false after saving
+    const handleSave = async () => {
+        try {
+            const response = await fetch(`${process.env.REACT_APP_AUTH_URL}/update/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    username: tempInfo.username,
+                    email: tempInfo.email,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update user data.');
+            }
+
+            const updatedData = await response.json();
+
+            // Update the user info with the returned data
+            const updatedInfo = {
+                username: updatedData.username || tempInfo.username,
+                email: updatedData.email || tempInfo.email,
+            };
+
+            setUserInfo(updatedInfo);
+            setTempInfo(updatedInfo);
+            setIsEditing(false);
+        } catch (err) {
+            setError(err.message);
+        }
     };
 
     const handleCancel = () => {
         setTempInfo(userInfo);
         setIsEditing(false);
-        setShowPassword(false); // Ensure password visibility is reset on cancel
     };
+
+    const handlePasswordEdit = () => {
+        // Redirect to /sec-questions-form when the user wants to reset their password
+        navigate('/sec-questions-form', { state: { isResetting: true } });
+    };
+
+    if (loading) {
+        return <div className="profile-container">Loading...</div>;
+    }
+
+    if (error) {
+        return <div className="profile-container">Error: {error}</div>;
+    }
 
     return (
         <div className="profile-container">
@@ -43,7 +134,7 @@ const Profile = () => {
                 <div className="profile-header">
                     <h1>Profile Settings</h1>
                     {!isEditing && (
-                        <button 
+                        <button
                             className="edit-button"
                             onClick={() => setIsEditing(true)}
                         >
@@ -55,7 +146,6 @@ const Profile = () => {
 
                 <div className="profile-image-container">
                     <div className="profile-image">
-                        {/* Using initials as placeholder */}
                         {userInfo.username.charAt(0).toUpperCase()}
                     </div>
                 </div>
@@ -84,23 +174,19 @@ const Profile = () => {
                     </div>
 
                     <div className="form-group">
-                        <label>Password</label>
-                        <div className="password-input-container">
+                        <label>New Password</label>
+                        <div className="password-container">
                             <input
-                                type={showPassword ? "text" : "password"}
-                                name="password"
-                                value={isEditing ? tempInfo.password : userInfo.password}
-                                onChange={handleInputChange}
-                                disabled={!isEditing}
+                                type="password"
+                                value="********" // Placeholder for security reasons
+                                readOnly
                             />
-                            {isEditing && (
-                                <button 
-                                    className="toggle-password"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                >
-                                    {showPassword ? <FiEyeOff /> : <FiEye />}
-                                </button>
-                            )}
+                            <button
+                                className="edit-password-button"
+                                onClick={handlePasswordEdit}
+                            >
+                                Reset Password
+                            </button>
                         </div>
                     </div>
 
