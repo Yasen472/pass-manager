@@ -8,15 +8,15 @@
 
 .login-container,
 .login-image-container {
-    height: 429.79px; 
+    height: 450px; 
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
 
 .login-header {
-    font-size: 2.3rem;
-    font-weight: 600;
+    font-size: 1.8rem;
+    font-weight: 700;
     color: #333;
 }
 
@@ -111,9 +111,6 @@ input:focus {
     background-color: #005bbb;
 }
 
-.sign-up-message {
-    margin-top: 20px;
-}
 
 .sign-up-message>a {
     cursor: pointer;
@@ -184,8 +181,6 @@ input:focus {
 .forgot-password-text:hover {
     text-decoration: underline;
 }
-
-
 
 
 @media (max-width: 768px) {

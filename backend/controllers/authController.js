@@ -246,7 +246,7 @@ const setupTwoFA = (db) => async (req, res) => {
         res.status(200).json({
             message: "2FA setup successful",
             qrCodeUrl,
-            secret: secret.base32  // Optional: You can send this for later use
+            secret: secret.base32 
         });
 
     } catch (error) {

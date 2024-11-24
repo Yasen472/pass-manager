@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import './accounts.css';
 import { CgProfile } from "react-icons/cg";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import { FaSort } from "react-icons/fa";
 import AccountCard from '../../components/accountCard/accountCard.js';
-import Modal from 'react-modal'; // Import Modal at the top of your file
+import Modal from 'react-modal';
 
 const API_BASE_URL = 'http://localhost:8080';
 
@@ -26,7 +27,7 @@ const Accounts = () => {
     const [is2FAModalOpen, setIs2FAModalOpen] = useState(false);
     const [twoFAToken, setTwoFAToken] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
-
+    const [showSortOptions, setShowSortOptions] = useState(false);
 
     useEffect(() => {
         const fetchUserId = async () => {
@@ -86,6 +87,18 @@ const Accounts = () => {
     useEffect(() => {
         fetchAccounts();
     }, [userId]);
+
+    const handleSort = (direction) => {
+        const sortedAccounts = [...accounts].sort((a, b) => {
+            if (direction === 'asc') {
+                return a.accountName.localeCompare(b.accountName);
+            } else {
+                return b.accountName.localeCompare(a.accountName);
+            }
+        });
+        setAccounts(sortedAccounts);
+        setShowSortOptions(false);
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -178,14 +191,8 @@ const Accounts = () => {
         }
     };
 
-    const filteredAccounts = accounts.filter(account =>
-        account.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        account.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
     const handleVerify2FA = async () => {
         try {
-            debugger;
             const response = await fetch(`${API_BASE_URL}/auth/verify-2fa`, {
                 method: 'POST',
                 headers: {
@@ -196,8 +203,8 @@ const Accounts = () => {
             });
 
             if (response.ok) {
-                setIs2FAModalOpen(false); // Close modal on success
-                setIsEditing(true); // Allow editing after verification
+                setIs2FAModalOpen(false);
+                setIsEditing(true);
             } else {
                 setErrorMessage('Invalid 2FA token. Please try again.');
             }
@@ -207,10 +214,14 @@ const Accounts = () => {
         }
     };
 
-
     const togglePasswordVisibility = () => {
         setPasswordVisible((prevState) => !prevState);
     };
+
+    const filteredAccounts = accounts.filter(account =>
+        account.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        account.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <div className="accounts-page-container">
@@ -223,8 +234,27 @@ const Accounts = () => {
                         placeholder="Search Accounts"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        className='search-accounts-input'
                     />
-                    <button className="sort-btn">Sort</button>
+                    <div className="sort-container">
+                        <button 
+                            className="sort-btn"
+                            onMouseEnter={() => setShowSortOptions(true)}
+                            onMouseLeave={() => setShowSortOptions(false)}
+                        >
+                            <FaSort /> Sort
+                            {showSortOptions && (
+                                <div className="sort-options">
+                                    <div onClick={() => handleSort('asc')}>
+                                        A to Z
+                                    </div>
+                                    <div onClick={() => handleSort('desc')}>
+                                        Z to A
+                                    </div>
+                                </div>
+                            )}
+                        </button>
+                    </div>
                     <button className="add-btn" onClick={() => setIsAddingAccount(true)}>Add Account</button>
                 </div>
                 {filteredAccounts.map((account) => (

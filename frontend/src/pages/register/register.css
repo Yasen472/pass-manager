@@ -58,7 +58,7 @@
     position: absolute;
     z-index: 1;
     top: 100%; /* Shows the dropdown directly below the requirements container */
-    left: 40%;
+    left: 23%;
     transform: translateY(10px); /* Slight offset for visual spacing */
     width: max-content;
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -102,7 +102,7 @@
 }
 
 .register-image {
-    height: 463px;
+    height: 550px;
     width: 414px;
     filter: brightness(90%);
     object-fit: cover;

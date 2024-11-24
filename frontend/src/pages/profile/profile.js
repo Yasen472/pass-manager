@@ -6,8 +6,8 @@ import { useNavigate, useLocation } from 'react-router-dom'; // Add React Router
 
 const Profile = () => {
     const navigate = useNavigate(); // For page redirection
-    const userId = localStorage.getItem("userId"); // Assuming token is available for authentication
-    const token = localStorage.getItem("token");
+    const userId = sessionStorage.getItem("userId"); // Assuming token is available for authentication
+    const token = sessionStorage.getItem("token");
 
     const location = useLocation();
     const isResetting = location.state?.isResetting || false;
