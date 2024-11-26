@@ -94,16 +94,17 @@
 }
 
 .register-container {
+    height: 500px;
     background-color: white;
     padding: 2rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 350px;
+    max-width: 300px;
 }
 
 .register-image {
-    height: 550px;
-    width: 414px;
+    height: 564px;
+    width: 450px;
     filter: brightness(90%);
     object-fit: cover;
     display: block;

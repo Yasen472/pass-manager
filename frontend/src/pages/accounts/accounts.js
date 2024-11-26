@@ -307,7 +307,7 @@ const Accounts = () => {
                                     onChange={handleInputChange}
                                     required
                                 />
-                                <span className="password-visibility-icon" onClick={togglePasswordVisibility}>
+                                <span className="password-accounts-visibility-icon" onClick={togglePasswordVisibility}>
                                     {passwordVisible ? <FiEyeOff /> : <FiEye />}
                                 </span>
                             </div>

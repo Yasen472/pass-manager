@@ -25,32 +25,6 @@ const Login = () => {
 
     const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible);
 
-    // const handleForgotPassword = async () => {
-    //     if (!email || !twoFACode) {
-    //         setErrorMessage('Please enter your email and 2FA code before resetting your password.');
-    //         return;
-    //     }
-
-    //     debugger;
-    //     try {
-    //         const response = await axios.post(`${process.env.REACT_APP_AUTH_URL}/verify-2fa-code`, {
-    //             email,
-    //             twoFACode,
-    //         });
-
-    //         if (response.status === 200) {
-    //             setIsResetting(true);
-    //             setIsResettingWithoutPassword(true); 
-    //             navigate('/new-password-setup', { state: { email, isResse: true } });
-    //         }
-    //     } catch (error) {
-    //         console.error("Error verifying 2FA code:", error);
-    //         const message = error.response?.data?.message || 'Failed to verify 2FA code.';
-    //         setErrorMessage(message);
-    //     }
-    // };
-
-
     const handleForgotPassword = async () => {
         if (!email || !twoFACode) {
             setErrorMessage('Please enter your email and 2FA code before resetting your password.');
@@ -162,7 +136,7 @@ const Login = () => {
                     />
                     <button type="submit" className="login-btn">Login</button>
                 </form>
-                <div className="forgot-password">
+                <div className="forgot-password-login">
                     <span
                         className="forgot-password-text"
                         onClick={handleForgotPassword}

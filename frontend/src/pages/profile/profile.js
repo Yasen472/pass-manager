@@ -1,12 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { FiEdit2, FiX, FiCheck } from 'react-icons/fi';
 import './profile.css';
-import { useNavigate, useLocation } from 'react-router-dom'; // Add React Router navigation
+import { useNavigate, useLocation } from 'react-router-dom'; // For page redirection
+import Modal from 'react-modal'; // Modal for 2FA verification
+
+Modal.setAppElement('#root'); // Ensure accessibility
 
 const Profile = () => {
-    const navigate = useNavigate(); // For page redirection
-    const userId = sessionStorage.getItem("userId"); // Assuming token is available for authentication
+    const navigate = useNavigate();
+    const userId = sessionStorage.getItem("userId");
     const token = sessionStorage.getItem("token");
 
     const location = useLocation();
@@ -21,22 +23,25 @@ const Profile = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // 2FA modal states
+    const [is2FAModalOpen, setIs2FAModalOpen] = useState(false);
+    const [twoFAToken, setTwoFAToken] = useState('');
+    const [twoFAErrorMessage, setTwoFAErrorMessage] = useState('');
+    const [isResettingPassword, setIsResettingPassword] = useState(false);
+
     useEffect(() => {
-        debugger;
         if (userId) {
             fetchUserInfo();
         }
     }, [userId]);
 
     useEffect(() => {
-        debugger;
         if (!isEditing) {
-            setTempInfo(userInfo); // Sync tempInfo with userInfo after editing
+            setTempInfo(userInfo);
         }
     }, [userInfo, isEditing]);
 
     const fetchUserInfo = async () => {
-        debugger;
         try {
             setLoading(true);
             const response = await fetch(`${process.env.REACT_APP_AUTH_URL}/user/${userId}`, {
@@ -52,8 +57,6 @@ const Profile = () => {
             }
 
             const data = await response.json();
-
-            // Populate user info with only the fields returned by the backend
             const updatedInfo = {
                 username: data.username || '',
                 email: data.email || '',
@@ -95,8 +98,6 @@ const Profile = () => {
             }
 
             const updatedData = await response.json();
-
-            // Update the user info with the returned data
             const updatedInfo = {
                 username: updatedData.username || tempInfo.username,
                 email: updatedData.email || tempInfo.email,
@@ -116,8 +117,42 @@ const Profile = () => {
     };
 
     const handlePasswordEdit = () => {
-        // Redirect to /sec-questions-form when the user wants to reset their password
-        navigate('/sec-questions-form', { state: { isResetting: true } });
+        setIs2FAModalOpen(true)
+    };
+
+    const handleReset = () => {
+        setIsResettingPassword(true);
+        setIs2FAModalOpen(true);
+    }
+
+    const handleVerify2FA = async () => {
+        try {
+            const response = await fetch(`${process.env.REACT_APP_AUTH_URL}/verify-2fa`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ token: twoFAToken, userInputTime: Date.now() }),
+            });
+
+            if (response.ok) {
+                setIs2FAModalOpen(false);
+                if(isResettingPassword) {
+                    navigate('/sec-questions-form', { state: { isResetting: true } });
+                }
+                setIsEditing(true);
+            } else {
+                setTwoFAErrorMessage('Invalid 2FA token. Please try again.');
+            }
+        } catch (error) {
+            console.error("Error during 2FA verification:", error);
+            setTwoFAErrorMessage('An error occurred during 2FA verification.');
+        }
+    };
+
+    const openEditMode = () => {
+        setIs2FAModalOpen(true);
     };
 
     if (loading) {
@@ -136,7 +171,7 @@ const Profile = () => {
                     {!isEditing && (
                         <button
                             className="edit-button"
-                            onClick={() => setIsEditing(true)}
+                            onClick={openEditMode}
                         >
                             <FiEdit2 />
                             Edit Profile
@@ -174,7 +209,7 @@ const Profile = () => {
                     </div>
 
                     <div className="form-group">
-                        <label>New Password</label>
+                        <label>Password</label>
                         <div className="password-container">
                             <input
                                 type="password"
@@ -183,7 +218,7 @@ const Profile = () => {
                             />
                             <button
                                 className="edit-password-button"
-                                onClick={handlePasswordEdit}
+                                onClick={handleReset}
                             >
                                 Reset Password
                             </button>
@@ -204,8 +239,36 @@ const Profile = () => {
                     )}
                 </div>
             </div>
+
+            <Modal
+                isOpen={is2FAModalOpen}
+                onRequestClose={() => setIs2FAModalOpen(false)}
+                contentLabel="2FA Verification"
+                className="modal"
+                overlayClassName="overlay"
+            >
+                <h3>Enter 2FA Token</h3>
+                <p>Please enter the token from your authenticator app to proceed.</p>
+                <input
+                    type="text"
+                    placeholder="Enter 2FA token"
+                    value={twoFAToken}
+                    onChange={(e) => setTwoFAToken(e.target.value)}
+                />
+                <div className="form-buttons">
+                    <button className="save-btn" onClick={handleVerify2FA}>Verify</button>
+                    <button
+                        className="cancel-btn"
+                        onClick={() => setIs2FAModalOpen(false)}
+                    >
+                        Cancel
+                    </button>
+                </div>
+                {twoFAErrorMessage && <p className="error-message">{twoFAErrorMessage}</p>}
+            </Modal>
         </div>
     );
 };
 
 export default Profile;
+

@@ -214,8 +214,8 @@ const setupTwoFA = (db) => async (req, res) => {
             const otpauthUrl = speakeasy.otpauthURL({
                 secret: user.twofaSecret,
                 encoding: 'ascii',
-                label: `MyApp:${user.username}`,
-                issuer: "MyApp"
+                label: `SafePass:${user.username}`,
+                issuer: "SafePass"
             });
 
             const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
@@ -237,8 +237,8 @@ const setupTwoFA = (db) => async (req, res) => {
 
         const otpauthUrl = speakeasy.otpauthURL({
             secret: secret.base32,
-            label: `MyApp:${user.username}`,
-            issuer: "MyApp"
+            label: `SafePass:${user.username}`,
+            issuer: "SafePass"
         });
 
         const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);

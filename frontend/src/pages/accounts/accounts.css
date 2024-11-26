@@ -43,6 +43,13 @@
     margin-bottom: 8px;
 }
 
+.password-accounts-visibility-icon {
+    position: absolute;
+    top: 20%;
+    right: 1%;
+
+}
+
 .account-name-heading {
     font-size: 28px;
     font-weight: 600;

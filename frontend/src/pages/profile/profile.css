@@ -124,6 +124,21 @@
   padding-top: 24px;
 }
 
+.edit-password-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 12px;
+  color: white;
+  background-color: #4079ff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
 .edit-button,
 .save-button,
 .cancel-button {

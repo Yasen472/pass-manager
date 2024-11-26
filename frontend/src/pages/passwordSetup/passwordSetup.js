@@ -2,32 +2,9 @@ import React, { useState } from 'react';
 import './passwordSetup.css';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { IoIosEye } from "react-icons/io";
+import { FaEyeSlash, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 
-const validatePassword = (password) => {
-  const minLength = 8;
-  const hasUpperCase = /[A-Z]/;
-  const hasLowerCase = /[a-z]/;
-  const hasNumber = /[0-9]/;
-  const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/;
-
-  if (password.length < minLength) {
-    return `Password should be at least ${minLength} characters long.`;
-  }
-  if (!hasUpperCase.test(password)) {
-    return "Password should include at least one uppercase letter.";
-  }
-  if (!hasLowerCase.test(password)) {
-    return "Password should include at least one lowercase letter.";
-  }
-  if (!hasNumber.test(password)) {
-    return "Password should include at least one number.";
-  }
-  if (!hasSymbol.test(password)) {
-    return "Password should include at least one symbol.";
-  }
-
-  return true;
-};
 
 const PasswordSetup = () => {
   const [password, setPassword] = useState('');
@@ -35,6 +12,10 @@ const PasswordSetup = () => {
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showRePassword, setShowRePassword] = useState(false);
+  const [metRequirements, setMetRequirements] = useState([]);
+  const [missedRequirements, setMissedRequirements] = useState([]);
+  const [readyPassword, setReadyPassword] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,6 +23,39 @@ const PasswordSetup = () => {
   const authUrl = process.env.REACT_APP_AUTH_URL; // Backend URL
 
   const isResettingWithoutPassword = location.state?.isResettingWithoutPassword;
+
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const toggleRePasswordVisibility = () => setShowRePassword(!showRePassword);
+
+  const validatePassword = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    const newMetRequirements = [];
+    const newMissedRequirements = [];
+
+    if (password.length >= minLength) newMetRequirements.push("At least 8 characters");
+    else newMissedRequirements.push("At least 8 characters");
+
+    if (hasUpperCase) newMetRequirements.push("At least one uppercase letter");
+    else newMissedRequirements.push("At least one uppercase letter");
+
+    if (hasLowerCase) newMetRequirements.push("At least one lowercase letter");
+    else newMissedRequirements.push("At least one lowercase letter");
+
+    if (hasNumber) newMetRequirements.push("At least one number");
+    else newMissedRequirements.push("At least one number");
+
+    if (hasSymbol) newMetRequirements.push("At least one special character");
+    else newMissedRequirements.push("At least one special character");
+
+    setMetRequirements(newMetRequirements);
+    setMissedRequirements(newMissedRequirements);
+    setReadyPassword(newMissedRequirements.length === 0);
+  };
 
   const handlePasswordChange = (e) => {
     const newPassword = e.target.value;
@@ -143,61 +157,6 @@ const PasswordSetup = () => {
   };
 
   return (
-    // <div className="password-setup-container">
-    //   <form onSubmit={handleSubmit} className="password-setup-form">
-    //     <h2>Create New Password</h2>
-
-    //     <div className="password-input-group">
-    //       <label htmlFor="new-password">New Password</label>
-    //       <div className="password-input-wrapper">
-    //         <input
-    //           type={showPassword ? 'text' : 'password'}
-    //           id="new-password"
-    //           value={password}
-    //           onChange={handlePasswordChange}
-    //           placeholder="Enter new password"
-    //           required
-    //         />
-    //         <button
-    //           type="button"
-    //           className="toggle-password"
-    //           onClick={() => setShowPassword(!showPassword)}
-    //         >
-    //           {showPassword ? '👁️' : '👁️‍🗨️'}
-    //         </button>
-    //       </div>
-    //       {passwordError && <div className="error-message">{passwordError}</div>}
-    //     </div>
-
-    //     <div className="password-input-group">
-    //       <label htmlFor="confirm-password">Confirm Password</label>
-    //       <input
-    //         type={showPassword ? 'text' : 'password'}
-    //         id="confirm-password"
-    //         value={confirmPassword}
-    //         onChange={handleConfirmPasswordChange}
-    //         placeholder="Confirm new password"
-    //         required
-    //       />
-    //       {confirmPasswordError && <div className="error-message">{confirmPasswordError}</div>}
-    //     </div>
-
-    //     <div className="password-requirements">
-    //       <p>Password must include:</p>
-    //       <ul>
-    //         <li>At least 8 characters</li>
-    //         <li>One uppercase letter</li>
-    //         <li>One lowercase letter</li>
-    //         <li>One number</li>
-    //         <li>One symbol</li>
-    //       </ul>
-    //     </div>
-
-    //     <button type="submit" className="submit-button">
-    //       Set New Password
-    //     </button>
-    //   </form>
-    // </div>
 
     <div className="password-setup-container">
       <form onSubmit={handleSubmit} className="password-setup-form">
@@ -205,57 +164,54 @@ const PasswordSetup = () => {
 
         <div className="password-input-group">
           <label htmlFor="new-password">New Password</label>
-          <div className="password-input-wrapper">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              id="new-password"
-              value={password}
-              onChange={handlePasswordChange}
-              placeholder="Enter new password"
-              required
-            />
-            <button
-              type="button"
-              className="toggle-password"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? '👁️' : '👁️‍🗨️'}
-            </button>
-          </div>
-          {passwordError && <div className="error-message">{passwordError}</div>}
+          <input
+            type={showPassword ? 'text' : 'password'}
+            id="new-password"
+            value={password}
+            onChange={handlePasswordChange}
+            placeholder="Enter new password"
+            required
+          />
+          {showPassword ? (
+            <FaEyeSlash className="password-visibility-icon" size={25} color='black' onClick={togglePasswordVisibility} />
+          ) : (
+            <IoIosEye className="password-visibility-icon" size={25} color='black' onClick={togglePasswordVisibility} />
+          )}
         </div>
 
         <div className="password-input-group">
           <label htmlFor="confirm-password">Confirm Password</label>
-          <div className="password-input-wrapper">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              id="confirm-password"
-              value={confirmPassword}
-              onChange={handleConfirmPasswordChange}
-              placeholder="Confirm new password"
-              required
-            />
-            <button
-              type="button"
-              className="toggle-password"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? '👁️' : '👁️‍🗨️'}
-            </button>
-          </div>
-          {confirmPasswordError && <div className="error-message">{confirmPasswordError}</div>}
+          <input
+            type={showPassword ? 'text' : 'password'}
+            id="confirm-password"
+            value={confirmPassword}
+            onChange={handleConfirmPasswordChange}
+            placeholder="Confirm new password"
+            required
+          />
+          {showRePassword ? (
+            <FaEyeSlash className="password-visibility-icon" size={25} color='black' onClick={toggleRePasswordVisibility} />
+          ) : (
+            <IoIosEye className="password-visibility-icon" size={25} color='black' onClick={toggleRePasswordVisibility} />
+          )}
         </div>
 
-        <div className="password-requirements">
-          <p>Password must include:</p>
-          <ul>
-            <li>At least 8 characters</li>
-            <li>One uppercase letter</li>
-            <li>One lowercase letter</li>
-            <li>One number</li>
-            <li>One symbol</li>
-          </ul>
+        <div className="pass-dropdown-requirements">
+          <div className="pass-dropdown-header">
+            <h4>Password Requirements</h4>
+          </div>
+          <div className="new-password-requirements">
+            {metRequirements.map((req, idx) => (
+              <div key={idx} className="requirement met">
+                <FaCheckCircle color="green" /> {req}
+              </div>
+            ))}
+            {missedRequirements.map((req, idx) => (
+              <div key={idx} className="requirement missed">
+                <FaTimesCircle color="red" /> {req}
+              </div>
+            ))}
+          </div>
         </div>
 
         <button type="submit" className="submit-button">

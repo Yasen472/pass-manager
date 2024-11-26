@@ -8,14 +8,14 @@
 
 .login-container,
 .login-image-container {
-    height: 450px; 
+    height: 500px; 
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
 
 .login-header {
-    font-size: 1.8rem;
+    font-size: 2rem;
     font-weight: 700;
     color: #333;
 }
@@ -111,14 +111,15 @@ input:focus {
     background-color: #005bbb;
 }
 
+.sign-up-message {
+    text-align: end;
+}
 
 .sign-up-message>a {
     cursor: pointer;
     text-decoration: none;
     color: #0077ff;
 }
-
-
 
 /* Overlay Style for Email Prompt */
 .email-prompt-overlay {
@@ -167,9 +168,9 @@ input:focus {
 }
 
 /* Optional: Add some styling for the 'Forgotten Password?' link */
-.forgot-password {
-    margin-top: 10px;
-    text-align: center;
+.forgot-password-login {
+    margin-top: 15px;
+    text-align: end;
 }
 
 .forgot-password-text {

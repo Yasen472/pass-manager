@@ -1,3 +1,8 @@
 email - test1232@abv.bgsss
 password - 343Fsafdsd^fldkfldk_dsss
 username - twoFaNotWorkingForTheLastTimes
+
+
+email - yasko@abv.bgg
+username  - Yasen99
+password - Af123#$kjfkdj9
