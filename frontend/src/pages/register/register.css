@@ -58,7 +58,7 @@
     position: absolute;
     z-index: 1;
     top: 100%; /* Shows the dropdown directly below the requirements container */
-    left: 23%;
+    left: 21%;
     transform: translateY(10px); /* Slight offset for visual spacing */
     width: max-content;
     transition: opacity 0.3s ease, transform 0.3s ease;
